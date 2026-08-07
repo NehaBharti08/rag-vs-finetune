@@ -1,0 +1,39 @@
+{
+  "note": "Provenance for the ingest corpus. PDFs are NOT committed; this file is. Licenses are re-verified against the OpenStax API on every ingest and ingestion aborts if any title is not CC BY 4.0.",
+  "books": [
+    {
+      "slug": "biology",
+      "title": "Biology",
+      "edition": "1st",
+      "uuid": "185cbf87-c72e-48f5-b51e-f14f21b5eabd",
+      "print_isbn_13": "978-1-938168-09-3",
+      "publish_date": "2016-10-21",
+      "pdf_url": "https://assets.openstax.org/oscms-prodcms/media/documents/Biology-OP_xQoZM8Z.pdf",
+      "path": "data/raw/biology.pdf",
+      "bytes": 279388465,
+      "sha256": "723dec671a4da7bcd6f665c1504253f2d6f3ce162de9e80949f868c16cdb770e",
+      "page_count": 1480,
+      "fetched_at": "2026-08-07T13:29:58+0000",
+      "license_name": "Creative Commons Attribution License",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    {
+      "slug": "anatomy-and-physiology",
+      "title": "Anatomy and Physiology",
+      "edition": "1st",
+      "uuid": "14fb4ad7-39a1-4eee-ab6e-3ef2482e3e22",
+      "print_isbn_13": "978-1-938168-13-0",
+      "publish_date": "2013-04-25",
+      "pdf_url": "https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-OP.pdf",
+      "path": "data/raw/anatomy-and-physiology.pdf",
+      "bytes": 135405076,
+      "sha256": "16cb34457cbaa66cc8a4ddd70e745dba0611d6f942bebe51d505ed6e7bd80362",
+      "page_count": 1420,
+      "fetched_at": "2026-08-07T13:30:01+0000",
+      "license_name": "Creative Commons Attribution License",
+      "license_version": "4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  ]
+}
