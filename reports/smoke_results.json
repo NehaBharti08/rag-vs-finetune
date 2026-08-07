@@ -1,0 +1,73 @@
+{
+  "verdict": "PASS",
+  "measured_at": "2026-08-07T11:38:26+0000",
+  "host": "AESed",
+  "gpu": {
+    "available": true,
+    "name": "NVIDIA RTX A5000",
+    "compute_capability": "8.6",
+    "total_gib": 22.05,
+    "bf16_supported": true
+  },
+  "versions": {
+    "python": "3.11.15",
+    "torch": "2.13.0+cu130",
+    "cuda_build": "13.0",
+    "transformers": "4.57.6",
+    "peft": "0.20.0",
+    "trl": "1.9.2",
+    "bitsandbytes": "0.50.0",
+    "accelerate": "1.14.0"
+  },
+  "config": {
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "quant": "nf4 double=True",
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "seq_len": 2048,
+    "per_device_batch": 2,
+    "grad_accum": 8,
+    "effective_batch": 16,
+    "gradient_checkpointing": true,
+    "optim": "paged_adamw_8bit",
+    "packing": true
+  },
+  "params": {
+    "trainable": 40370176,
+    "total": 4393342464,
+    "trainable_pct": 0.9189
+  },
+  "measurements": {
+    "steps_timed": 17,
+    "model_load_seconds": 13.2,
+    "weights_only_gib": 5.18,
+    "peak_allocated_gib": 11.13,
+    "peak_reserved_gib": 11.88,
+    "headroom_gib": 10.17,
+    "mean_step_seconds": 51.884,
+    "tokens_per_second": 631.6,
+    "tokens_per_step": 32768,
+    "total_train_seconds": 1038.0,
+    "final_loss": 0.0076
+  },
+  "projection": {
+    "assumed_train_examples": 4000,
+    "assumed_avg_tokens_per_example": 600,
+    "avg_tokens_is_estimate_until_phase1": true,
+    "tokens_per_epoch": 2400000,
+    "hours_per_epoch": 1.06,
+    "hours_per_3epoch_run": 3.17,
+    "sweep_4_configs_1_epoch": 4.22,
+    "final_3_seeds_3_epochs": 9.5,
+    "training_total": 13.72
+  }
+}

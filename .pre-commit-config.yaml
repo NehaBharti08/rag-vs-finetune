@@ -1,0 +1,48 @@
+# ruff lints, black formats. `ruff-format` is deliberately NOT enabled — it and
+# black disagree on edge cases and would rewrite each other's output on every
+# commit. Same decision as VidyaRAG, for the same reason.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        # No model weights, adapters, PDFs, or datasets in git history. Ever.
+        # 5MB is deliberately far below the ~50MB the brief allows, because the
+        # things that blow past 5MB here are exactly the things that must live
+        # on the HF Hub instead.
+        args: [--maxkb=5000]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        # main stays green and is only ever updated through a PR.
+        args: [--branch, main]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/psf/black
+    rev: 25.9.0
+    hooks:
+      - id: black
+
+  - repo: local
+    hooks:
+      # A frozen eval set that can be silently edited is not frozen. This hook
+      # fails the commit if the eval data changed without frozen.lock changing
+      # with it — the failure mode it prevents is a metric quietly shifting
+      # under results that were already reported.
+      - id: eval-frozen-check
+        name: eval set matches frozen.lock
+        entry: uv run python -m ragft.eval.frozen --check
+        language: system
+        pass_filenames: false
+        files: ^(configs/eval/|data/eval/|prompts/judge/|src/ragft/eval/metrics/)

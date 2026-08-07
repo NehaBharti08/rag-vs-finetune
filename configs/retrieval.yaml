@@ -1,0 +1,54 @@
+# ===========================================================================
+# MIRRORED FROM VidyaRAG — DO NOT TUNE THESE INDEPENDENTLY
+#
+# Source: https://github.com/NehaBharti08/VidyaRAG
+#   config/default.yaml  +  config/profiles/baseline.yaml
+#
+# These values are NOT chosen here. They are copied from VidyaRAG's frozen
+# `baseline` profile so that the retrieval arms of the two projects are the
+# same pipeline rather than a lookalike. That identity is the entire
+# apples-to-apples claim of this benchmark.
+#
+# VidyaRAG marks that profile:
+#     "FROZEN ... This profile is the control group for every measurement in
+#      this project. Once Phase 2 ships, DO NOT EDIT IT."
+# which is exactly what a 2x2 needs from its retrieval arm.
+#
+# tests/test_retrieval_mirror.py asserts these still match upstream. If
+# VidyaRAG changes its baseline, that test fails loudly instead of this
+# comparison silently drifting.
+# ===========================================================================
+
+upstream_repo: NehaBharti08/VidyaRAG
+upstream_profile: baseline
+# Populated by scripts/sync_upstream.sh once the mirror is verified against a
+# specific commit. Null means "not yet pinned", which the test reports.
+upstream_commit: null
+
+# --- Chunking ---------------------------------------------------------------
+# VidyaRAG's rationale, preserved verbatim because it is the justification this
+# project inherits:
+#   512 tokens is roughly 1.5 paragraphs of textbook prose: large enough to
+#   hold a self-contained concept, small enough that a 5-chunk context stays
+#   near 2.6k tokens and leaves ample room for generation.
+#   Trade-off: 256 raises precision but fragments multi-sentence definitions;
+#   1024 improves recall on long explanations but dilutes the embedding and
+#   raises per-query cost.
+chunking:
+  chunk_size: 512
+  chunk_overlap: 64
+  respect_sentence_boundaries: true
+
+# --- Retrieval --------------------------------------------------------------
+# top_k_retrieve > top_k_context by design: a reranker can only add value when
+# given a candidate pool wider than the final selection.
+top_k_retrieve: 20
+top_k_context: 5
+
+# The baseline profile is dense retrieval with no enhancements. Every one of
+# these stays false for this benchmark: the RAG arm of a 2x2 must be a clean,
+# frozen control, not VidyaRAG's best-tuned configuration. Comparing a tuned
+# RAG stack against an untuned fine-tune would be its own confound.
+use_hybrid: false
+use_reranker: false
+use_decomposition: false

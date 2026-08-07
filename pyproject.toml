@@ -1,0 +1,176 @@
+[project]
+name = "ragft"
+version = "0.1.0"
+description = "A 2x2 benchmark of RAG vs QLoRA fine-tuning over the VidyaRAG OpenStax corpus."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Neha Bharti" }]
+# 3.11 exactly. bitsandbytes and torch wheel coverage is the binding constraint,
+# and 3.13 is where the base environment on this machine already breaks.
+requires-python = ">=3.11,<3.12"
+
+# ---------------------------------------------------------------------------
+# The dependency window is NOT a preference. It is derived from a hard conflict:
+#
+#   bitsandbytes 0.50  requires  transformers<5
+#   trl          1.9.x requires  transformers>=4.56.2
+#   => the only satisfiable window is transformers>=4.56.2,<5
+#
+# The base env on this machine ships transformers 5.14.1 on Python 3.13, which
+# is outside that window in both dimensions. That is why this project gets its
+# own uv venv and why Phase 0 exists at all. Do not widen these bounds without
+# re-running scripts/00_smoke.sh.
+# ---------------------------------------------------------------------------
+dependencies = [
+    # --- Training -----------------------------------------------------------
+    "torch>=2.4,<3.0",
+    "transformers>=4.56.2,<5",
+    "trl>=1.9,<2.0",
+    "peft>=0.20,<1.0",
+    "bitsandbytes>=0.50,<1.0",
+    "accelerate>=1.14,<2.0",
+    "datasets>=3.0,<5.0",
+    "wandb>=0.18,<1.0",
+
+    # --- Retrieval (mirrors VidyaRAG's stack) -------------------------------
+    "llama-index-core>=0.12,<0.15",
+    "llama-index-vector-stores-qdrant>=0.4,<0.8",
+    "qdrant-client[fastembed]>=1.12,<2.0",
+    "pymupdf>=1.24,<2.0",
+
+    # --- Generation / judging (provider-agnostic) ---------------------------
+    # httpx drives the local Ollama path; openai is the optional ~$2 path that
+    # matches VidyaRAG's generation_model/grader_model exactly.
+    "httpx>=0.27,<1.0",
+    "openai>=1.60,<3.0",
+    "tiktoken>=0.8,<1.0",
+
+    # --- Dataset construction / decontamination -----------------------------
+    "datasketch>=1.6,<2.0",
+
+    # --- Config / plumbing (mirrors VidyaRAG) -------------------------------
+    "pydantic>=2.9,<3.0",
+    "pydantic-settings>=2.6,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "pyyaml>=6.0,<7.0",
+    "tenacity>=9.0,<10.0",
+    "structlog>=24.4,<26.0",
+    "typer>=0.15,<1.0",
+    "rich>=13.9,<15.0",
+
+    # --- Analysis -----------------------------------------------------------
+    "numpy>=1.26,<3.0",
+    "pandas>=2.2,<3.0",
+    "matplotlib>=3.9,<4.0",
+]
+
+[project.urls]
+Repository = "https://github.com/NehaBharti08/rag-vs-finetune"
+
+[project.scripts]
+ragft = "ragft.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9.0",
+    "pytest-cov>=6.0,<8.0",
+    "ruff>=0.8,<1.0",
+    "black>=24.10,<26.0",
+    "mypy>=1.13,<2.0",
+    "pre-commit>=4.0,<5.0",
+    "types-pyyaml>=6.0,<7.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ragft"]
+
+# ---------------------------------------------------------------------------
+# Tooling — deliberately identical to VidyaRAG so the two repos read as one
+# engineer's work. Including the ruff-format decision below.
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # flake8-bugbear
+    "C4",       # flake8-comprehensions
+    "UP",       # pyupgrade
+    "ARG",      # unused arguments
+    "SIM",      # flake8-simplify
+    "TID",      # tidy imports
+    "PTH",      # prefer pathlib
+    "BLE",      # blind except - allowed only where justified with noqa
+    "RUF",
+]
+ignore = [
+    "E501",  # line length is black's job
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ARG001", "ARG002"]
+# HuggingFace's TrainerCallback mandates a fixed signature on every hook
+# (args, state, control, **kwargs) whether or not a given hook reads each one.
+# They cannot be renamed or dropped, so unused-argument detection is disabled
+# for this file alone rather than for the whole training package.
+"src/ragft/train/callbacks.py" = ["ARG002"]
+
+# ruff-format is deliberately NOT enabled: it and black disagree on edge cases
+# and would rewrite each other's output on every commit. Same call as VidyaRAG.
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/ragft"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "bitsandbytes.*", "datasets.*", "datasketch.*", "fastembed.*", "fitz",
+    "llama_index.*", "matplotlib.*", "peft.*", "qdrant_client.*",
+    "transformers.*", "trl.*", "wandb.*",
+]
+ignore_missing_imports = true
+
+# The training modules are thin wrappers over transformers / trl / peft, which
+# are largely untyped: `trl` does not re-export SFTConfig/SFTTrainer, and
+# `AutoTokenizer.from_pretrained`, `BitsAndBytesConfig` and
+# `prepare_model_for_kbit_training` are untyped callables. Under `strict` these
+# produce a wall of errors about OTHER people's annotations, which is noise
+# rather than safety.
+#
+# Strictness is kept everywhere it can actually catch a bug in THIS project's
+# code -- settings, corpus, dataset, retrieval, eval, analysis. Only the three
+# error codes caused by the untyped boundary are disabled, and only here.
+[[tool.mypy.overrides]]
+module = ["ragft.train.*"]
+disable_error_code = ["no-untyped-call", "attr-defined", "assignment"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "gpu: requires a CUDA device (deselect with '-m \"not gpu\"')",
+    "slow: takes more than a few seconds (deselect with '-m \"not slow\"')",
+    "costly: makes real paid API calls (deselect with '-m \"not costly\"')",
+]
+
+[tool.coverage.run]
+source = ["src/ragft"]
+branch = true

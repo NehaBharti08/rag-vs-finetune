@@ -1,0 +1,77 @@
+# Shared QLoRA defaults. Sweep overlays live in configs/train/sweep.yaml.
+#
+# Every value below has a reason. Where the reason is "measure it in Phase N",
+# that is stated rather than dressed up as a decision.
+
+model_name: Qwen/Qwen2.5-7B-Instruct
+
+lora:
+  # Sweep tests 16 vs 64. At ~4k training examples, higher rank mostly buys
+  # capacity to overfit; sweeping tests that claim instead of assuming it.
+  r: 16
+
+  # Expressed as a RATIO to r, not an absolute alpha. LoRA scales its update by
+  # alpha/r, so holding the ratio fixed keeps effective update magnitude
+  # constant when r changes. The learning rate then needs no re-tuning per
+  # rank, and the r=16 vs r=64 comparison measures rank rather than a
+  # confounded change in effective learning rate. This is what makes the sweep
+  # interpretable.
+  alpha_ratio: 2.0
+
+  # Light regularization for ~4k examples. 0 risks memorization; 0.1 is
+  # unnecessarily strong at this rank.
+  dropout: 0.05
+
+  # All seven linear projections — attention AND MLP. The QLoRA paper's central
+  # ablation: adapting every linear layer is what closes the gap to full
+  # fine-tuning; attention-only measurably underperforms. Adapters are ~0.5% of
+  # parameters, so the extra cost is noise.
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# QLoRA paper default for 7B. LoRA tolerates ~10x full-finetuning learning
+# rates because B is zero-initialized: the model starts at exactly the base
+# function and the adapters cannot blow up early.
+learning_rate: 2.0e-4
+lr_scheduler_type: cosine
+# Warmup matters more than usual here: gradients are large in the first steps
+# while B departs from zero.
+warmup_ratio: 0.03
+num_train_epochs: 3
+
+# Effective batch = 2 x 8 = 16. At ~4k examples that is 250 optimizer steps per
+# epoch: enough steps for the cosine schedule to mean something, not so many
+# that each one is noise.
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+
+# PROVISIONAL. Phase 1 measures the p99 token length of
+# (passage + question + formatted answer) and resets this from the data.
+# Padding to 2048 when the data is 600 tokens wastes ~70% of the compute
+# budget, so this number must be measured, not guessed.
+max_seq_length: 2048
+packing: true
+
+# ~30% slower, but it creates the VRAM headroom that keeps a run alive when
+# another user takes GPU memory. This box is shared; robustness beats speed.
+gradient_checkpointing: true
+
+# 8-bit optimizer states cut optimizer memory ~4x, and paging survives
+# transient VRAM spikes instead of OOM-ing. On a shared GPU that robustness is
+# worth more than full AdamW's marginal quality difference.
+optim: paged_adamw_8bit
+bf16: true
+seed: 42
+
+# Checkpointing every epoch is what makes the epoch axis FREE: the sweep reads
+# epochs 1/2/3 out of a single run instead of launching one run per epoch
+# count. That single decision collapses a 12-run grid to 4 and is most of the
+# difference between a ~75 GPU-hour plan and a ~24 GPU-hour one.
+save_strategy: epoch
+eval_strategy: epoch

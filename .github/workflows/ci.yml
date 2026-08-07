@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# CI runs on CPU runners with no GPU and no API keys. It therefore runs only
+# the tests marked neither `gpu` nor `costly`. The GPU path is verified locally
+# by `make smoke`, whose measurements are committed to reports/env_matrix.md —
+# a CI runner cannot reproduce them and pretending otherwise would be theatre.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      # --frozen: CI must fail if uv.lock is stale rather than silently
+      # resolving something different from what was tested locally.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check src tests scripts
+
+      - name: Format check
+        run: uv run black --check src tests
+
+      - name: Type check
+        run: uv run mypy
+
+      - name: Test
+        run: uv run pytest -m "not gpu and not costly" --cov=ragft --cov-report=term-missing

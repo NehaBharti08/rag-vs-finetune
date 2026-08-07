@@ -1,0 +1,70 @@
+# ---------------------------------------------------------------------------
+# NEVER COMMIT. This list is the project's non-negotiable git hygiene rule and
+# is verified by `make check-clean` before the first push.
+# ---------------------------------------------------------------------------
+
+# --- Secrets ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# --- Model weights and adapters --------------------------------------------
+# Adapters live on the HF Hub and are referenced from the repo, never stored
+# in it. A LoRA adapter is small enough to tempt you; do not.
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.onnx
+adapter_model.*
+adapter_config.json
+checkpoints/
+outputs/
+runs/
+
+# --- Corpus and datasets ---------------------------------------------------
+# Raw OpenStax PDFs are CC BY but large; they are fetched and checksummed by
+# ragft.corpus.download instead. Generated QA goes to the HF Hub.
+data/**
+!data/MANIFEST.md
+!data/.gitkeep
+*.pdf
+
+# --- Experiment tracking / job output --------------------------------------
+wandb/
+*.log
+logs/
+slurm-*.out
+nohup.out
+.tmux-logs/
+
+# --- Caches ----------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+.cache/
+.llm_cache/
+
+# --- Vector store ----------------------------------------------------------
+qdrant_storage/
+data/index/
+
+# --- Editor / OS -----------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swp
