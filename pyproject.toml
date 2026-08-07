@@ -164,7 +164,7 @@ disable_error_code = ["no-untyped-call", "attr-defined", "assignment"]
 # Same situation at the pymupdf boundary: Document, get_text and close are all
 # untyped in the library. These two modules are the only ones that touch it.
 [[tool.mypy.overrides]]
-module = ["ragft.corpus.parse", "ragft.corpus.download"]
+module = ["ragft.corpus.parse", "ragft.corpus.download", "ragft.dataset.stats"]
 disable_error_code = ["no-untyped-call"]
 
 [tool.pytest.ini_options]
