@@ -59,10 +59,17 @@ if command -v nvidia-smi >/dev/null 2>&1; then
                --format=csv,noheader | sed 's/^/  /'
 fi
 
+# Re-quote the command with printf %q before handing it to tmux.
+#
+# The obvious `$*` loses quoting the moment an argument contains a space,
+# a quote, or a newline: `run.sh x uv run python -c "a\nb"` silently became a
+# different command and exited 2. Twice. %q round-trips each argument exactly.
+printf -v CMD '%q ' "$@"
+
 # `exec` is deliberately absent: the shell stays alive after the command exits
 # so a crashed run leaves its tmux pane readable instead of vanishing.
 tmux new-session -d -s "$SESSION" -c "$REPO_ROOT" \
-    "set -o pipefail; { echo '=== $SESSION started '\$(date -Is)' ==='; $*; echo \"=== exit=\$? at \$(date -Is) ===\"; } 2>&1 | tee '$LOG'; echo; echo '[session idle — ctrl-b d to detach, exit to close]'; bash"
+    "set -o pipefail; { echo '=== $SESSION started '\$(date -Is)' ==='; $CMD; echo \"=== exit=\$? at \$(date -Is) ===\"; } 2>&1 | tee '$LOG'; echo; echo '[session idle — ctrl-b d to detach, exit to close]'; bash"
 
 echo "started : $SESSION"
 echo "log     : $LOG"
