@@ -68,6 +68,37 @@ a **public** corpus. Results may not transfer to a genuinely private domain,
 where the base model has no prior exposure and fine-tuning starts from a very
 different place. No design choice here fixes that; it is a scope limit.
 
+## 4b. The generator and judge are small local models
+
+**The threat.** Generation and judging both run on `gemma4:e4b` (9.6 GB,
+local). It is materially weaker than a hosted model at both jobs. A weak
+generator caps the quality and variety of what the fine-tuned arm can learn; a
+weak judge adds noise, and possibly bias, to the primary metric.
+
+**This is a deliberate constraint, not an oversight.** The project runs at zero
+API cost by choice, so the repository reproduces end to end for anyone with a
+GPU and no budget. The provider layer is swappable by configuration, so
+upgrading is a one-line change in `.env` rather than a code change.
+
+**Defense, such as it is.** Partial, and worth being blunt about:
+
+- Judge quality is *measured*, not assumed: Cohen's kappa against 100
+  human-labelled responses is reported. If it comes out below 0.6 the judge is
+  not trustworthy and the analysis says so, leaning on the judge-free metrics
+  instead.
+- The headline metrics that need no judge at all -- citation validity, format
+  adherence, abstention, MMLU -- are unaffected by this threat entirely.
+- Phase 1 measured a concrete cost of the weak generator: 2,583 training
+  examples averaging 114 tokens, giving ~215 optimizer steps over three epochs.
+  That is a thin signal, and `reports/dataset_card.md` names it as the first
+  thing to suspect if Phase 4 shows little movement -- ahead of any conclusion
+  about fine-tuning as a method.
+
+**Residual risk.** A null result in Phase 4 is genuinely ambiguous between "the
+method does not help here" and "the training data was too weak to show it".
+That ambiguity cannot be resolved from inside this configuration, so any null
+result will be reported with both readings stated.
+
 ## 5. Judge family bias
 
 **The threat.** An LLM judge that shares a model family with one of the arms

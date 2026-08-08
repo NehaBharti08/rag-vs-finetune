@@ -85,6 +85,7 @@ defenses in [docs/THREATS_TO_VALIDITY.md](docs/THREATS_TO_VALIDITY.md)._
 | Quantization | 4-bit NF4, **all arms** | If fine-tuned arms ran 4-bit and base arms ran bf16, quantization would be confounded with adaptation |
 | Adaptation | QLoRA, all 7 projections | Attention *and* MLP: adapting every linear layer is what closes the gap to full fine-tuning |
 | Generator / judge | never Qwen-family | A same-family generator distils its own style into the fine-tuned arm; a same-family judge favours it. Enforced in `settings.py`, not in a footnote |
+| API cost | **$0.00** | Runs entirely on local Ollama, so anyone with a GPU and no budget reproduces it end to end. The cost is a weaker generator and judge — measured and reported, not hidden: see [threat 4b](docs/THREATS_TO_VALIDITY.md) |
 | Seeds | 3, mean ± std | Single-run numbers are this genre's most common credibility failure |
 | Primary metric | pre-registered | Factual accuracy on eval-unseen, split by parametric answerability. Everything else is explicitly secondary |
 
