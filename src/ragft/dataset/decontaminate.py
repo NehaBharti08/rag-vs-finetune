@@ -65,8 +65,28 @@ def tokens(text: str) -> list[str]:
 
 
 def ngrams(text: str, n: int) -> set[str]:
+    """Word n-grams. Empty when the text is shorter than ``n`` tokens."""
     toks = tokens(text)
     return {" ".join(toks[i : i + n]) for i in range(len(toks) - n + 1)}
+
+
+def shingles(text: str, n: int = SHINGLE_N) -> set[str]:
+    """Shingles for similarity, degrading to unigrams on short texts.
+
+    `ngrams` returns the empty set for anything shorter than n tokens, and an
+    empty MinHash signature is identical to every other empty signature. Left
+    unhandled that makes every short question a "duplicate" of every other one:
+    the first run of this check flagged 420 within-train pairs, of which the
+    top matches were "What is phagocytosis?" against "What is chemical
+    energy?" - three-token questions with no 5-gram between them.
+
+    That is a false positive in the checker, not contamination in the data, and
+    it is the more dangerous direction of error: a decontamination check that
+    cries wolf gets its threshold relaxed until it stops catching real
+    problems.
+    """
+    grams = ngrams(text, n)
+    return grams if grams else set(tokens(text))
 
 
 def check_provenance(rows: list[dict[str, Any]]) -> CheckResult:
@@ -136,7 +156,7 @@ def check_minhash(a: list[str], b: list[str], label: str, within: bool = False) 
 
     def signature(text: str) -> MinHash:
         m = MinHash(num_perm=MINHASH_PERMS)
-        for shingle in ngrams(text, SHINGLE_N):
+        for shingle in shingles(text):
             m.update(shingle.encode("utf-8"))
         return m
 
@@ -198,9 +218,70 @@ def check_embedding(a: list[str], b: list[str], label: str) -> CheckResult:
     )
 
 
+def enforce(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Drop val rows whose question semantically duplicates a train question.
+
+    Val exists to monitor overfitting. A val question that is a paraphrase of a
+    training question is one the model has effectively already seen, so val
+    loss would understate the generalisation gap - the single measurement val
+    is there to provide.
+
+    These are real duplicates, not a checker artefact: textbooks define the
+    same concept in several places, so `Biology 31.1` and `Anatomy 2.4` both
+    define "organic compound" from genuinely different passages. Structural
+    provenance cannot catch that, which is why the embedding check exists.
+
+    Removal uses the **pre-registered** 0.95 threshold. The count at a stricter
+    0.90 is reported but NOT acted on: moving a threshold after seeing results
+    is the post-hoc adjustment this project exists to avoid.
+    """
+    from fastembed import TextEmbedding
+
+    train = [r for r in rows if r["split"] == Split.TRAIN.value]
+    val = [r for r in rows if r["split"] == Split.VAL.value]
+    if not train or not val:
+        return rows, {"removed": 0, "reason": "one side empty"}
+
+    model = TextEmbedding(EMBED_MODEL)
+    va = np.array(list(model.embed([r["question"] for r in val])), dtype=np.float32)
+    vb = np.array(list(model.embed([r["question"] for r in train])), dtype=np.float32)
+    va /= np.linalg.norm(va, axis=1, keepdims=True)
+    vb /= np.linalg.norm(vb, axis=1, keepdims=True)
+    max_sim = (va @ vb.T).max(axis=1)
+
+    keep_val = [r for r, sim in zip(val, max_sim, strict=True) if sim < COSINE_THRESHOLD]
+    removed = [
+        {
+            "qa_id": r["qa_id"],
+            "question": r["question"][:120],
+            "max_similarity": round(float(sim), 4),
+        }
+        for r, sim in zip(val, max_sim, strict=True)
+        if sim >= COSINE_THRESHOLD
+    ]
+    return train + keep_val, {
+        "threshold_applied": COSINE_THRESHOLD,
+        "val_before": len(val),
+        "val_after": len(keep_val),
+        "removed": len(removed),
+        "examples": removed[:10],
+        "residual_at_0.90": int((max_sim >= 0.90).sum()),
+        "residual_note": (
+            "Reported, not acted on. The 0.95 threshold was fixed before these "
+            "numbers existed; tightening it now would be a post-hoc adjustment."
+        ),
+    }
+
+
 def run(in_name: str = "filtered.jsonl") -> dict[str, Any]:
     src = QA_DIR / in_name
     rows = [json.loads(line) for line in src.open(encoding="utf-8") if line.strip()]
+
+    rows, enforcement = enforce(rows)
+    out_path = QA_DIR / "clean.jsonl"
+    with out_path.open("w", encoding="utf-8") as fh:
+        for row in rows:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
 
     train = [r for r in rows if r["split"] == Split.TRAIN.value]
     val = [r for r in rows if r["split"] == Split.VAL.value]
@@ -221,6 +302,7 @@ def run(in_name: str = "filtered.jsonl") -> dict[str, Any]:
         "rows": len(rows),
         "train_rows": len(train),
         "val_rows": len(val),
+        "enforcement": enforcement,
         "all_passed": all(c.passed for c in checks),
         "checks": [{"name": c.name, "passed": c.passed, **c.detail} for c in checks],
         "note": (

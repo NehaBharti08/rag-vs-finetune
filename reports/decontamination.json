@@ -1,28 +1,83 @@
 {
   "input": "filtered.jsonl",
-  "rows": 17,
-  "train_rows": 17,
-  "val_rows": 0,
+  "rows": 2875,
+  "train_rows": 2583,
+  "val_rows": 292,
+  "enforcement": {
+    "threshold_applied": 0.95,
+    "val_before": 294,
+    "val_after": 292,
+    "removed": 2,
+    "examples": [
+      {
+        "qa_id": "cc8cdef25e9384ae",
+        "question": "What specific pigment combination is shared between green algae and land plants?",
+        "max_similarity": 0.9579
+      },
+      {
+        "qa_id": "aaab0bc854578500",
+        "question": "What chemical characteristic defines an organic compound?",
+        "max_similarity": 0.9751
+      }
+    ],
+    "residual_at_0.90": 8,
+    "residual_note": "Reported, not acted on. The 0.95 threshold was fixed before these numbers existed; tightening it now would be a post-hoc adjustment."
+  },
   "all_passed": true,
   "checks": [
     {
       "name": "provenance",
       "passed": true,
       "rows_by_split": {
-        "train": 17
+        "train": 2583,
+        "val": 292
       },
       "split_violations": 0,
-      "train_sections_used": 3,
+      "train_sections_used": 299,
       "eval_unseen_sections_total": 40,
       "train_eval_section_overlap": [],
       "examples": []
+    },
+    {
+      "name": "ngram_val_vs_train",
+      "passed": true,
+      "n": 13,
+      "texts_with_overlap": 0,
+      "of": 292,
+      "examples": []
+    },
+    {
+      "name": "minhash_val_vs_train",
+      "passed": true,
+      "threshold": 0.7,
+      "pairs": 0,
+      "of": 292,
+      "examples": []
+    },
+    {
+      "name": "embedding_val_vs_train",
+      "passed": true,
+      "model": "BAAI/bge-small-en-v1.5",
+      "threshold": 0.95,
+      "over_threshold": 0,
+      "of": 292,
+      "max_similarity": 0.945,
+      "mean_max_similarity": 0.7615,
+      "histogram": {
+        "0.00-0.50": 0,
+        "0.50-0.70": 31,
+        "0.70-0.80": 201,
+        "0.80-0.90": 54,
+        "0.90-0.95": 6,
+        "0.95-1.01": 0
+      }
     },
     {
       "name": "minhash_within_train",
       "passed": true,
       "threshold": 0.7,
       "pairs": 0,
-      "of": 17,
+      "of": 2583,
       "examples": []
     }
   ],

@@ -57,7 +57,7 @@ system, and any cluster entry in `~/.ssh/config`. Jobs run under tmux via
 | Quantization | nf4 double=True |
 | LoRA rank / alpha | 16 / 32 |
 | Target modules | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj` |
-| Sequence length | 2048 |
+| Sequence length | 512 |
 | Batch (per-device x accum = effective) | 2 x 8 = 16 |
 | Gradient checkpointing | True |
 | Optimizer | `paged_adamw_8bit` |
@@ -84,15 +84,15 @@ near capacity is a run that dies when someone else allocates memory.
 
 ## Recalibrated compute budget
 
-Projected from measured throughput, assuming 4,000
-training examples averaging **600 tokens each**.
+Projected from measured throughput, assuming 2,583
+training examples averaging **114 tokens each**.
 
 ⚠️ The average example length — not `seq_len` — drives this. With packing on,
-short examples are concatenated to fill each 2048-token block, so
-4,000 examples of ~600
-tokens occupy roughly 1,171 sequences, not
-4,000 of them. Using `examples x seq_len` instead
-overstates the budget by the packing ratio (~3.4x here).
+short examples are concatenated to fill each 512-token block, so
+2,583 examples of ~114
+tokens occupy roughly 575 sequences, not
+2,583 of them. Using `examples x seq_len` instead
+overstates the budget by the packing ratio (~4.5x here).
 
 The token count itself is still an **estimate** until Phase 1 measures the real
 length distribution of (passage + question + formatted answer). Throughput is
@@ -100,11 +100,11 @@ measured; the example length is not, yet.
 
 | Item | GPU-hours |
 |---|---|
-| One epoch | 1.06 |
-| One 3-epoch run | 3.17 |
-| Sweep: 4 configs x 1 epoch | 4.22 |
-| Final: 3 seeds x 3 epochs | 9.5 |
-| **Training total** | **13.72** |
+| One epoch | 0.13 |
+| One 3-epoch run | 0.39 |
+| Sweep: 4 configs x 1 epoch | 0.52 |
+| Final: 3 seeds x 3 epochs | 1.17 |
+| **Training total** | **1.68** |
 
 Evaluation, latency measurement and the smoke job add roughly 4.5 GPU-hours on
 top, and are dominated by generation rather than training.

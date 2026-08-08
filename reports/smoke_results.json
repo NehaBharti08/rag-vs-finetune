@@ -33,7 +33,7 @@
       "up_proj",
       "down_proj"
     ],
-    "seq_len": 2048,
+    "seq_len": 512,
     "per_device_batch": 2,
     "grad_accum": 8,
     "effective_batch": 16,
@@ -60,14 +60,14 @@
     "final_loss": 0.0076
   },
   "projection": {
-    "assumed_train_examples": 4000,
-    "assumed_avg_tokens_per_example": 600,
+    "assumed_train_examples": 2583,
+    "assumed_avg_tokens_per_example": 114,
     "avg_tokens_is_estimate_until_phase1": true,
-    "tokens_per_epoch": 2400000,
-    "hours_per_epoch": 1.06,
-    "hours_per_3epoch_run": 3.17,
-    "sweep_4_configs_1_epoch": 4.22,
-    "final_3_seeds_3_epochs": 9.5,
-    "training_total": 13.72
+    "tokens_per_epoch": 294462,
+    "hours_per_epoch": 0.13,
+    "hours_per_3epoch_run": 0.39,
+    "sweep_4_configs_1_epoch": 0.52,
+    "final_3_seeds_3_epochs": 1.17,
+    "training_total": 1.68
   }
 }

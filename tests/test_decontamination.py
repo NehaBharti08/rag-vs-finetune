@@ -86,3 +86,26 @@ class TestEmbedding:
     def test_reports_a_histogram_not_just_a_verdict(self) -> None:
         """The distribution shape shows whether the threshold was a near miss."""
         assert check_embedding(CLEAN_A, CLEAN_B, "t").detail["histogram"]
+
+
+class TestShortTextShingling:
+    """Regression: short questions must not all collide as duplicates.
+
+    The first full run flagged 420 within-train pairs because three-token
+    questions produce no 5-gram shingle, and an empty MinHash signature is
+    identical to every other empty one. This is the more dangerous direction of
+    error - a check that cries wolf gets relaxed until it stops catching real
+    problems.
+    """
+
+    def test_short_text_still_produces_shingles(self) -> None:
+        from ragft.dataset.decontaminate import shingles
+
+        assert shingles("What is phagocytosis?") == {"what", "is", "phagocytosis"}
+
+    def test_unrelated_short_questions_are_not_duplicates(self) -> None:
+        assert check_minhash(["What is phagocytosis?"], ["What is chemical energy?"], "t").passed
+
+    def test_identical_short_questions_are_still_caught(self) -> None:
+        """The fix must not blind the check to genuine short duplicates."""
+        assert not check_minhash(["What is phagocytosis?"], ["What is phagocytosis?"], "t").passed

@@ -57,9 +57,7 @@ def token_lengths(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def build() -> dict[str, Any]:
-    rows = [
-        json.loads(ln) for ln in (QA_DIR / "filtered.jsonl").open(encoding="utf-8") if ln.strip()
-    ]
+    rows = [json.loads(ln) for ln in (QA_DIR / "clean.jsonl").open(encoding="utf-8") if ln.strip()]
     gen = json.loads((QA_DIR / "generation_summary.json").read_text(encoding="utf-8"))
     filt = json.loads((QA_DIR / "filter_summary.json").read_text(encoding="utf-8"))
     decon = json.loads((REPORTS / "decontamination.json").read_text(encoding="utf-8"))
@@ -80,6 +78,7 @@ def build() -> dict[str, Any]:
         "generation": gen,
         "filtering": filt,
         "decontamination_passed": decon["all_passed"],
+        "decontamination_enforcement": decon.get("enforcement", {}),
         "token_lengths": tokens,
     }
     (REPORTS / "dataset_card.json").write_text(json.dumps(card, indent=2) + "\n", encoding="utf-8")
@@ -198,6 +197,33 @@ than guessed. The mean ({t["mean"]:,} tokens) is what drives the GPU-hour
 projection, because packing concatenates short examples to fill each block --
 using `examples x seq_len` instead overstates the training budget by the
 packing ratio.
+
+The project plan assumed ~600 tokens and `max_seq_length` 2048. Both were
+wrong, for a structural reason worth stating: a training example is a question
+plus a formatted answer and contains **no passage**, because the no-retrieval
+arm has to recall parametrically. There is no long context to hold. Padding to
+2048 would have wasted roughly {2048 / t["mean"]:.0f}x the compute for nothing.
+
+## Limitations
+
+**The set is small in tokens, not just in rows.** {card["totals"]["train"]:,}
+training examples at {t["mean"]:,} tokens is ~{card["totals"]["train"] * t["mean"] / 1000:.0f}k
+tokens per epoch. With packing at seq_len {t["recommended_max_seq_length"]} that is
+only ~{card["totals"]["train"] * t["mean"] / t["recommended_max_seq_length"]:.0f}
+sequences, so an epoch is **~{card["totals"]["train"] * t["mean"] / t["recommended_max_seq_length"] / 8:.0f} optimizer
+steps** at effective batch 8, and ~{3 * card["totals"]["train"] * t["mean"] / t["recommended_max_seq_length"] / 8:.0f}
+over three epochs.
+
+That is a thin training signal for adapting a 7B model, and no batch size fixes
+it -- halving the batch buys steps, not information. It is a real constraint on
+how large an effect Phase 4 can be expected to produce, and it is recorded here
+rather than discovered later. If the fine-tuned arms show little movement, this
+is the first thing to suspect, ahead of any conclusion about fine-tuning as a
+method.
+
+**Generator quality bounds everything downstream.** The free local generator
+(`{g.get("model")}`) is materially weaker than a hosted model. A stronger
+generator is a ~$2 configuration change, not a code change.
 """
 
 
