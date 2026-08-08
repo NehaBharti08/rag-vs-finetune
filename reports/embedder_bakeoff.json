@@ -1,0 +1,28 @@
+{
+  "criterion": "recall@5 on the val split, measured BEFORE any arm ran",
+  "why_this_is_not_post_hoc_tuning": "The embedder is the one retrieval component with no VidyaRAG value to mirror - VidyaRAG uses OpenAI text-embedding-3-small, which this project cannot use at zero cost. A choice had to be made either way, so it was made on measured evidence, on val, before any arm produced a number. The mirrored parameters (chunk 512/64, top_k 20->5, dense only) were NOT touched.",
+  "candidates": {
+    "BAAI/bge-small-en-v1.5": {
+      "dim": 384,
+      "recall@1": 0.5,
+      "recall@3": 0.719,
+      "recall@5": 0.795,
+      "recall@10": 0.888,
+      "seconds": 128
+    },
+    "BAAI/bge-base-en-v1.5": {
+      "dim": 768,
+      "recall@1": 0.576,
+      "recall@3": 0.755,
+      "recall@5": 0.817,
+      "recall@10": 0.881,
+      "seconds": 337
+    },
+    "thenlper/gte-base": {
+      "status": "FAILED",
+      "error": "fastembed returned variable-length embeddings; numpy raised 'inhomogeneous shape' at (256,). Not investigated further - two candidates were enough to make the decision. Recorded rather than omitted."
+    }
+  },
+  "chosen": "BAAI/bge-base-en-v1.5",
+  "rationale": "recall@5 0.817 vs 0.795 clears the pre-registered 0.80 threshold, and recall@1 improves markedly (0.576 vs 0.500), which matters because the top chunk dominates a 5-chunk context. Costs 2.6x embedding time, which is a one-off index build."
+}

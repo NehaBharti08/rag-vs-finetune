@@ -1,0 +1,21 @@
+{
+  "collection": "ragft_biology_v1",
+  "points": 3047,
+  "rebuilt": true,
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embedding_dim": 384,
+  "elapsed_seconds": 184.1,
+  "chunking": {
+    "chunk_size": 512,
+    "chunk_overlap": 64
+  },
+  "top_k_retrieve": 20,
+  "top_k_context": 5,
+  "deviation_from_vidyarag": "VidyaRAG embeds with OpenAI text-embedding-3-small; this project uses BAAI/bge-small-en-v1.5 locally to run at zero API cost. All other retrieval parameters are mirrored exactly.",
+  "by_split": {
+    "train": 2385,
+    "val": 319,
+    "eval_unseen": 343
+  },
+  "note": "The index covers the WHOLE corpus including eval_unseen sections. A real RAG system indexes everything; hiding eval sections would cripple the retrieval arms to flatter the parametric ones."
+}

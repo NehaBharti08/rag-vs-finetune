@@ -1,0 +1,4 @@
+Retrieved passages:
+{context}
+
+{question}
