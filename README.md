@@ -13,7 +13,8 @@ over one corpus, one evaluation set, one base checkpoint.
 
 </div>
 
-> **Status: Phase 0 — foundation.** This README is built up phase by phase.
+> **Status: Phase 1 complete — dataset built.** This README is built up phase
+> by phase.
 > Sections marked _pending_ are filled in as the work behind them lands.
 > No number appears here before it has been measured.
 
@@ -108,7 +109,50 @@ make check            # lint + types + fast tests
 `make smoke` writes [`reports/env_matrix.md`](reports/env_matrix.md). Every
 GPU-hour estimate in this project is calibrated from it rather than assumed.
 
-_Dataset, evaluation and training commands land in Phases 1–4._
+```bash
+uv run python -m ragft.corpus.download      # licence-verified, fails closed
+uv run python -m ragft.corpus.parse         # 375 sections
+uv run python -m ragft.corpus.split         # seeded, BEFORE generation
+uv run python -m ragft.dataset.generate     # ~5h local, $0
+uv run python -m ragft.dataset.filter
+uv run python -m ragft.dataset.decontaminate
+uv run python -m ragft.dataset.stats
+```
+
+_Evaluation and training commands land in Phases 2–4._
+
+## Dataset (Phase 1)
+
+**2,875 QA pairs** (2,583 train / 292 val) grounded in
+335 corpus sections. Full detail in
+[`reports/dataset_card.md`](reports/dataset_card.md); decontamination evidence in
+[`reports/decontamination.md`](reports/decontamination.md).
+
+Decontamination is **structural, not best-effort**: sections are assigned to
+splits *before* any QA is generated, so a training pair and an eval question
+cannot share a source passage. Four checks verify that guarantee rather than
+trying to establish it after the fact. All pass.
+
+Two things Phase 1 measured that the plan had guessed wrong:
+
+- **Token length.** Planned ~600 tokens/example and `max_seq_length` 2048;
+  measured p99 **180**, mean **113.9**. A training example is a
+  question plus a formatted answer and contains *no passage* — the no-retrieval
+  arm has to recall parametrically, so there is no long context to hold.
+  `max_seq_length` is now 512 and the training
+  budget dropped from 13.7 to **1.7 GPU-hours**.
+- **A false positive in my own decontamination check.** The first run flagged
+  420 within-train duplicates; the top matches were *"What is phagocytosis?"*
+  against *"What is chemical energy?"*. Three-token questions form no 5-gram
+  shingle, so their MinHash signatures were empty — and empty signatures are
+  identical to one another. Fixed, with regression tests. A check that cries
+  wolf is more dangerous than one that is merely absent, because its threshold
+  gets relaxed until it stops catching anything.
+
+**Known limitation, stated up front.** ~72
+optimizer steps per epoch is a thin training signal, and no batch size fixes it.
+If Phase 4 shows little movement, that is the first thing to suspect — ahead of
+any conclusion about fine-tuning as a method.
 
 ## Environment note
 
