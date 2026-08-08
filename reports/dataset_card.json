@@ -1,76 +1,75 @@
 {
   "generated_at": "gemma4:e4b",
   "totals": {
-    "kept": 2875,
-    "train": 2583,
-    "val": 292
+    "kept": 3161,
+    "train": 2839,
+    "val": 322
   },
   "by_type": {
     "factual": 1164,
     "definition": 593,
     "applied": 567,
     "multihop": 509,
-    "unanswerable": 42
+    "unanswerable": 328
   },
   "by_book": {
-    "biology": 1731,
-    "anatomy-and-physiology": 1403
+    "biology": 1879,
+    "anatomy-and-physiology": 1541
   },
   "sections_covered": 335,
   "generation": {
     "model": "gemma4:e4b",
-    "tasks_run": 1501,
-    "elapsed_seconds": 17547.4,
+    "tasks_run": 335,
+    "elapsed_seconds": 2857.8,
     "usage": {
-      "calls": 1501,
+      "calls": 335,
       "cached_calls": 0,
-      "input_tokens": 1248229,
-      "output_tokens": 1685827,
+      "input_tokens": 324437,
+      "output_tokens": 275357,
       "by_model": {
         "gemma4:e4b": {
-          "calls": 1501,
-          "input": 1248229,
-          "output": 1685827
+          "calls": 335,
+          "input": 324437,
+          "output": 275357
         }
       },
       "estimated_usd": 0.0
     },
-    "ok": 1494,
-    "empty": 7,
-    "pairs": 3646,
+    "ok": 335,
+    "empty": 0,
+    "pairs": 335,
     "failed": 0
   },
   "filtering": {
     "input_rows": 3661,
-    "kept": 2877,
-    "rejected": 784,
-    "rejection_rate": 0.2141,
-    "meta_prefix_normalised_fields": 987,
+    "kept": 3163,
+    "rejected": 498,
+    "rejection_rate": 0.136,
+    "meta_prefix_normalised_fields": 946,
     "by_criterion": {
-      "kept": 2877,
-      "passage_reference": 747,
+      "kept": 3163,
+      "passage_reference": 462,
       "not_a_question": 24,
       "question_length": 10,
-      "duplicate_question": 2,
-      "refusal_text_missing": 1
+      "duplicate_question": 2
     },
     "by_type_kept": {
       "applied": 567,
       "definition": 594,
       "factual": 1165,
-      "unanswerable": 42,
-      "multihop": 509
+      "multihop": 509,
+      "unanswerable": 328
     },
     "by_split_kept": {
-      "train": 2583,
-      "val": 294
+      "train": 2839,
+      "val": 324
     }
   },
   "decontamination_passed": true,
   "decontamination_enforcement": {
     "threshold_applied": 0.95,
-    "val_before": 294,
-    "val_after": 292,
+    "val_before": 324,
+    "val_after": 322,
     "removed": 2,
     "examples": [
       {
@@ -84,20 +83,20 @@
         "max_similarity": 0.9751
       }
     ],
-    "residual_at_0.90": 8,
+    "residual_at_0.90": 9,
     "residual_note": "Reported, not acted on. The 0.95 threshold was fixed before these numbers existed; tightening it now would be a post-hoc adjustment."
   },
   "token_lengths": {
     "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
-    "n": 2875,
+    "n": 3161,
     "min": 53,
     "max": 221,
-    "mean": 113.9,
-    "p50": 108,
-    "p75": 132,
-    "p90": 151,
-    "p95": 162,
-    "p99": 180,
+    "mean": 112.8,
+    "p50": 107,
+    "p75": 130,
+    "p90": 150,
+    "p95": 161,
+    "p99": 179,
     "recommended_max_seq_length": 512,
     "note": "max_seq_length is set from p99 rather than guessed. The mean drives the GPU-hour projection because packing concatenates short examples to fill each block."
   }

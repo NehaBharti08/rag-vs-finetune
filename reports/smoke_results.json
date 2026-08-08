@@ -60,14 +60,14 @@
     "final_loss": 0.0076
   },
   "projection": {
-    "assumed_train_examples": 2583,
-    "assumed_avg_tokens_per_example": 114,
+    "assumed_train_examples": 2839,
+    "assumed_avg_tokens_per_example": 113,
     "avg_tokens_is_estimate_until_phase1": true,
-    "tokens_per_epoch": 294462,
-    "hours_per_epoch": 0.13,
-    "hours_per_3epoch_run": 0.39,
-    "sweep_4_configs_1_epoch": 0.52,
-    "final_3_seeds_3_epochs": 1.17,
-    "training_total": 1.68
+    "tokens_per_epoch": 320807,
+    "hours_per_epoch": 0.14,
+    "hours_per_3epoch_run": 0.42,
+    "sweep_4_configs_1_epoch": 0.56,
+    "final_3_seeds_3_epochs": 1.27,
+    "training_total": 1.83
   }
 }

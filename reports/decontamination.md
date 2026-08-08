@@ -9,7 +9,7 @@ guarantee rather than trying to establish it after the fact.
 
 ## Verdict: ALL PASSED
 
-2,875 pairs (2,583 train / 292 val).
+3,161 pairs (2,839 train / 322 val).
 
 | Check | Result | Detail |
 |---|---|---|
@@ -22,7 +22,7 @@ guarantee rather than trying to establish it after the fact.
 ## Enforcement
 
 Val questions removed as semantic duplicates of train questions: **2**
-(294 -> 292), at the pre-registered cosine threshold
+(324 -> 322), at the pre-registered cosine threshold
 0.95.
 
 Val exists to monitor overfitting, so a val question that paraphrases a training
@@ -35,7 +35,7 @@ question: *Biology* 31.1 and *Anatomy and Physiology* 2.4 both define "organic
 compound". Structural provenance cannot catch that, which is precisely why the
 embedding check exists.
 
-**8 pairs sit above a stricter 0.90 and were left in
+**9 pairs sit above a stricter 0.90 and were left in
 place.** Tightening a threshold after seeing the numbers is exactly the post-hoc
 adjustment this project exists to avoid, so the residual is reported instead of
 acted on.

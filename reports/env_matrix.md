@@ -84,14 +84,14 @@ near capacity is a run that dies when someone else allocates memory.
 
 ## Recalibrated compute budget
 
-Projected from measured throughput, assuming 2,583
-training examples averaging **114 tokens each**.
+Projected from measured throughput, assuming 2,839
+training examples averaging **113 tokens each**.
 
 ⚠️ The average example length — not `seq_len` — drives this. With packing on,
 short examples are concatenated to fill each 512-token block, so
-2,583 examples of ~114
-tokens occupy roughly 575 sequences, not
-2,583 of them. Using `examples x seq_len` instead
+2,839 examples of ~113
+tokens occupy roughly 626 sequences, not
+2,839 of them. Using `examples x seq_len` instead
 overstates the budget by the packing ratio (~4.5x here).
 
 The token count itself is still an **estimate** until Phase 1 measures the real
@@ -100,11 +100,11 @@ measured; the example length is not, yet.
 
 | Item | GPU-hours |
 |---|---|
-| One epoch | 0.13 |
-| One 3-epoch run | 0.39 |
-| Sweep: 4 configs x 1 epoch | 0.52 |
-| Final: 3 seeds x 3 epochs | 1.17 |
-| **Training total** | **1.68** |
+| One epoch | 0.14 |
+| One 3-epoch run | 0.42 |
+| Sweep: 4 configs x 1 epoch | 0.56 |
+| Final: 3 seeds x 3 epochs | 1.27 |
+| **Training total** | **1.83** |
 
 Evaluation, latency measurement and the smoke job add roughly 4.5 GPU-hours on
 top, and are dominated by generation rather than training.

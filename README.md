@@ -123,7 +123,7 @@ _Evaluation and training commands land in Phases 2–4._
 
 ## Dataset (Phase 1)
 
-**2,875 QA pairs** (2,583 train / 292 val) grounded in
+**3,161 QA pairs** (2,839 train / 322 val) grounded in
 335 corpus sections. Full detail in
 [`reports/dataset_card.md`](reports/dataset_card.md); decontamination evidence in
 [`reports/decontamination.md`](reports/decontamination.md).
@@ -136,11 +136,11 @@ trying to establish it after the fact. All pass.
 Two things Phase 1 measured that the plan had guessed wrong:
 
 - **Token length.** Planned ~600 tokens/example and `max_seq_length` 2048;
-  measured p99 **180**, mean **113.9**. A training example is a
+  measured p99 **179**, mean **112.8**. A training example is a
   question plus a formatted answer and contains *no passage* — the no-retrieval
   arm has to recall parametrically, so there is no long context to hold.
   `max_seq_length` is now 512 and the training
-  budget dropped from 13.7 to **1.7 GPU-hours**.
+  budget dropped from 13.7 to **1.8 GPU-hours**.
 - **A false positive in my own decontamination check.** The first run flagged
   420 within-train duplicates; the top matches were *"What is phagocytosis?"*
   against *"What is chemical energy?"*. Three-token questions form no 5-gram
@@ -149,8 +149,7 @@ Two things Phase 1 measured that the plan had guessed wrong:
   wolf is more dangerous than one that is merely absent, because its threshold
   gets relaxed until it stops catching anything.
 
-**Known limitation, stated up front.** ~72
-optimizer steps per epoch is a thin training signal, and no batch size fixes it.
+**Known limitation, stated up front.** ~78 optimizer steps per epoch is a thin training signal, and no batch size fixes it.
 If Phase 4 shows little movement, that is the first thing to suspect — ahead of
 any conclusion about fine-tuning as a method.
 
