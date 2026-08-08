@@ -88,8 +88,8 @@ upgrading is a one-line change in `.env` rather than a code change.
   instead.
 - The headline metrics that need no judge at all -- citation validity, format
   adherence, abstention, MMLU -- are unaffected by this threat entirely.
-- Phase 1 measured a concrete cost of the weak generator: 2,583 training
-  examples averaging 114 tokens, giving ~215 optimizer steps over three epochs.
+- Phase 1 measured a concrete cost of the weak generator: 2,839 training
+  examples averaging 113 tokens, giving ~235 optimizer steps over three epochs.
   That is a thin signal, and `reports/dataset_card.md` names it as the first
   thing to suspect if Phase 4 shows little movement -- ahead of any conclusion
   about fine-tuning as a method.
