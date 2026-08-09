@@ -48,6 +48,15 @@ def load_responses() -> list[dict[str, Any]]:
         return [json.loads(line) for line in fh if line.strip()]
 
 
+def load_scored() -> list[dict[str, Any]]:
+    """Whatever has already been judged."""
+    out = EVAL_DIR / "answerability.jsonl"
+    if not out.exists():
+        return []
+    with out.open(encoding="utf-8") as fh:
+        return [json.loads(line) for line in fh if line.strip()]
+
+
 def label(limit: int | None = None) -> dict[str, Any]:
     settings = Settings(_env_file=None)
     judge = build_client(settings, "judge")
@@ -55,26 +64,30 @@ def label(limit: int | None = None) -> dict[str, Any]:
     if limit:
         responses = responses[:limit]
 
-    print(f"judging {len(responses)} base-model responses with {judge.model}")
-    scored: list[dict[str, Any]] = []
-    for n, row in enumerate(responses, 1):
-        judgement = judge_one(judge, row["question"], row["reference"], row["response"])
-        scored.append(
-            {
+    # Append-and-flush per item so an interrupted run resumes instead of
+    # restarting. Writing only at completion meant a stop 7 minutes into a
+    # ~30 minute job threw away all 7 minutes.
+    out = EVAL_DIR / "answerability.jsonl"
+    scored = load_scored()
+    done = {r["gold_id"] for r in scored}
+    todo = [r for r in responses if r["gold_id"] not in done]
+
+    print(f"judging with {judge.model}: {len(done)} done, {len(todo)} to go")
+    with out.open("a", encoding="utf-8") as fh:
+        for n, row in enumerate(todo, 1):
+            judgement = judge_one(judge, row["question"], row["reference"], row["response"])
+            record = {
                 **row,
                 "judge_score": judgement.score,
                 "judge_reason": judgement.reason,
                 "judge_parsed": judgement.parsed,
                 "parametric_answerable": judgement.score >= ANSWERABLE_MIN_SCORE,
             }
-        )
-        if n % 50 == 0 or n == len(responses):
-            print(f"  [{n}/{len(responses)}]", flush=True)
-
-    out = EVAL_DIR / "answerability.jsonl"
-    with out.open("w", encoding="utf-8") as fh:
-        for row in scored:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+            fh.flush()
+            scored.append(record)
+            if n % 25 == 0 or n == len(todo):
+                print(f"  [{n}/{len(todo)}]", flush=True)
 
     # Stratified sample for human grading: proportional across judge scores, so
     # kappa is not computed on an all-correct sample where a judge that always
