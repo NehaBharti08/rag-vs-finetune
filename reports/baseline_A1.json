@@ -33,9 +33,27 @@
     "mean_completion_tokens": 109.3,
     "contention": {
       "memory_used_mib": 9771,
-      "utilization_pct": 88,
+      "utilization_pct": 0,
       "exclusive": false
     },
     "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+  },
+  "answerability": {
+    "judge_model": "gemma4:e4b",
+    "n": 300,
+    "parametric_answerable": 227,
+    "parametric_answerable_rate": 0.7567,
+    "score_distribution": {
+      "2": 227,
+      "1": 31,
+      "0": 42
+    },
+    "by_stratum": {
+      "eval_unseen": 0.75,
+      "train_seen": 0.7833
+    },
+    "judge_unparseable": 0,
+    "judge_sample_written": 100,
+    "gate_note": "This rate IS threat 4 measured. A high share means Qwen2.5 already knows the corpus, every cell compresses toward ceiling, and Phase 4 training compute buys little. That is the Phase 3 go/no-go decision, taken before the compute is spent rather than after."
   }
 }
