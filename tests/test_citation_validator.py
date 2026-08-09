@@ -72,3 +72,52 @@ class TestRegistryCoverage:
         """
         bad = [s.section_id for s in reg.sections if not reg.validate(s.citation).is_valid]
         assert bad == []
+
+
+class TestGradedCitationLevels:
+    """Existence and correctness are different questions.
+
+    Measured on the baseline arm, 99.3% of citations named a real section and
+    only 2.2% named the right one. A metric that stopped at "exists" would have
+    reported near-perfect grounding.
+    """
+
+    def test_correct_section_scores_every_level(self) -> None:
+        from ragft.eval.metrics.citation import score_one
+
+        s = score_one("**Source.** Biology, §7.3, p.198 (OpenStax, CC BY 4.0)", ["biology:7.3"])
+        assert (s.parseable, s.section_exists, s.section_correct, s.page_in_range) == (
+            True,
+            True,
+            True,
+            True,
+        )
+
+    def test_real_but_wrong_section_is_caught(self) -> None:
+        """The failure mode a single validity number hides."""
+        from ragft.eval.metrics.citation import score_one
+
+        s = score_one("**Source.** Biology, §7.3, p.198 (OpenStax, CC BY 4.0)", ["biology:12.1"])
+        assert s.section_exists is True
+        assert s.section_correct is False
+
+    def test_right_section_wrong_page_fails_the_page_level(self) -> None:
+        from ragft.eval.metrics.citation import score_one
+
+        s = score_one("**Source.** Biology, §7.3, p.999", ["biology:7.3"])
+        assert s.section_correct is True
+        assert s.page_in_range is False
+
+    def test_fabrication_rate_counts_plausible_wrong_citations(self) -> None:
+        from ragft.eval.metrics.citation import aggregate
+
+        agg = aggregate(
+            [
+                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
+                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
+            ],
+            [["biology:7.3"], ["biology:99.9"]],
+        )
+        assert agg["section_exists_rate"] == 1.0
+        assert agg["section_correct_rate"] == 0.5
+        assert agg["fabrication_rate"] == 0.5
