@@ -78,51 +78,87 @@ def _gold_id(question: str) -> str:
 def generate_from(
     sections: list[Section], stratum: str, client: OllamaClient, n_target: int
 ) -> list[GoldItem]:
+    """Generate up to ``n_target`` items, walking passages within each section.
+
+    The first version used only each section's opening passage, which capped
+    eval_unseen at 40 sections x 3 = 120 items and silently under-delivered the
+    target. Walking further passages is the right fix: asking one passage for
+    twice as many questions produces redundant near-duplicates, whereas a
+    different passage is genuinely different material.
+
+    Passage index is the outer loop so breadth comes before depth -- every
+    section contributes its first passage before any contributes its second.
+    """
     rng = random.Random(GOLD_SEED)
     pool = list(sections)
     rng.shuffle(pool)
 
     template = load_prompt("gold_eval")
     items: list[GoldItem] = []
-    for section in pool:
+    seen_ids: set[str] = set()
+    max_passages = max((len(to_passages(s)) for s in pool), default=0)
+
+    for passage_index in range(max_passages):
         if len(items) >= n_target:
             break
-        passages = to_passages(section)
-        if not passages:
-            continue
-        passage = passages[0]
-        prompt = template.format(
-            n=PER_SECTION,
-            book=section.book_title,
-            label=section.label,
-            title=section.title,
-            passage=passage,
-        )
-        raw = client.complete(prompt, temperature=0.7)
-        for entry in parse_items(raw):
-            question = str(entry.get("question", "")).strip()
-            reference = str(entry.get("reference", "")).strip()
-            if not question or not reference or not question.endswith("?"):
+        for section in pool:
+            if len(items) >= n_target:
+                break
+            passages = to_passages(section)
+            if passage_index >= len(passages):
                 continue
-            # Same leakage rule as the training set: an eval question that
-            # mentions the passage is unanswerable without one.
-            if re.search(r"(?i)\b(?:the|this)\s+(?:passage|text|excerpt)\b", question):
-                continue
-            items.append(
-                GoldItem(
-                    gold_id=_gold_id(question),
-                    question=question,
-                    reference=reference,
-                    stratum=stratum,
-                    source_section_ids=[section.section_id],
-                    source_chunk_sha256=[chunk_sha256(passage)],
-                    book_slug=section.book_slug,
-                    citation=section.citation,
-                    generator_model=client.model,
-                )
-            )
-        print(f"  [{len(items)}/{n_target}] {section.section_id}", flush=True)
+            passage = passages[passage_index]
+            _generate_one(template, client, section, passage, stratum, items, seen_ids, n_target)
+            print(f"  [{len(items)}/{n_target}] p{passage_index} {section.section_id}", flush=True)
     return items[:n_target]
+
+
+def _generate_one(
+    template: str,
+    client: OllamaClient,
+    section: Section,
+    passage: str,
+    stratum: str,
+    items: list[GoldItem],
+    seen_ids: set[str],
+    n_target: int,
+) -> None:
+    prompt = template.format(
+        n=PER_SECTION,
+        book=section.book_title,
+        label=section.label,
+        title=section.title,
+        passage=passage,
+    )
+    raw = client.complete(prompt, temperature=0.7)
+    for entry in parse_items(raw):
+        if len(items) >= n_target:
+            return
+        question = str(entry.get("question", "")).strip()
+        reference = str(entry.get("reference", "")).strip()
+        if not question or not reference or not question.endswith("?"):
+            continue
+        # Same leakage rule as the training set: an eval question that
+        # mentions the passage is unanswerable without one.
+        if re.search(r"(?i)\b(?:the|this)\s+(?:passage|text|excerpt)\b", question):
+            continue
+        gold_id = _gold_id(question)
+        if gold_id in seen_ids:
+            continue
+        seen_ids.add(gold_id)
+        items.append(
+            GoldItem(
+                gold_id=gold_id,
+                question=question,
+                reference=reference,
+                stratum=stratum,
+                source_section_ids=[section.section_id],
+                source_chunk_sha256=[chunk_sha256(passage)],
+                book_slug=section.book_slug,
+                citation=section.citation,
+                generator_model=client.model,
+            )
+        )
 
 
 def build() -> dict[str, Any]:
