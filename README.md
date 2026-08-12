@@ -13,8 +13,8 @@ over one corpus, one evaluation set, one base checkpoint.
 
 </div>
 
-> **Status: Phase 1 complete — dataset built.** This README is built up phase
-> by phase.
+> **Status: Phase 3 partial — baseline arms measured.** This README is built up
+> phase by phase.
 > Sections marked _pending_ are filled in as the work behind them lands.
 > No number appears here before it has been measured.
 
@@ -38,13 +38,54 @@ The fourth cell is the one most write-ups omit, and it is usually the most
 interesting. Any conclusion of the form "X beats Y" is only credible with all
 four.
 
-## Results
+## Results so far
 
-_Pending (Phase 3 onward)._
+**The headline is not what I expected, and it is not about accuracy.**
 
-**Any result that contradicts my expectations goes in this section first.** If
-fine-tuning loses on everything except latency, that sentence will be the first
-thing you read. A suspiciously clean win is a bug report, not a finding.
+On this corpus the base model already knows the biology — it answers
+**75.7%** of the gold set correctly with *no retrieval at all*.
+What it cannot do is say where the answer came from. It cites the correct
+section **1.3%** of the time.
+
+So what retrieval buys here is **provenance, not knowledge**:
+
+| Judge-free metric | A1 base, no retrieval | A2 base + RAG |
+|---|---|---|
+| Cites a section that **exists** | 98.0% | 100.0% |
+| **Cites the CORRECT section** | **1.3%** | **70.0%** |
+| **Page inside that section** | **0.3%** | **99.7%** |
+| Fabrication rate (real section, wrong one) | 96.7% | 30.0% |
+| Mean prompt tokens | 418 | 2880 |
+| Latency p50 | 2.14s | 2.74s |
+
+None of these numbers need an LLM judge. They are string matches against a
+finite registry of real sections and page ranges.
+
+**Three things worth noticing.**
+
+*The base model is confidently wrong, not vague.* It produces a well-formed
+citation 98.3% of the time, names a section that genuinely exists
+98.0% of the time, and attaches the CC BY suffix
+98.3% of the time — while being right about
+which section only 1.3% of the time. It has learned the *shape* of an
+OpenStax citation without the content mapping underneath.
+
+*Retrieval is bounded by retrieval.* It surfaced the source section for
+89.3% of questions, and the model converted about
+78% of those into a correct
+citation. The remaining gap is not a generation failure.
+
+*Retrieval helps more where the model knows less.* Correct-section rate rises to
+75.3% on questions the base model could
+*not* already answer, versus 68.3% where it could.
+
+**The Phase 3 gate came back MARGINAL.** 75.7% parametric
+answerability means every cell of the 2×2 is compressed and Phase 4 deltas will
+be small. That was measured *before* spending training compute, which is what
+the gate is for. Full evidence: [`reports/baseline_A1.md`](reports/baseline_A1.md)
+and [`reports/arms_comparison.md`](reports/arms_comparison.md).
+
+_Fine-tuned arms (A3, A4) require an adapter — Phase 4._
 
 ## Relationship to VidyaRAG
 
