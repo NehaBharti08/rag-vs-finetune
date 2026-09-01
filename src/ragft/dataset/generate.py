@@ -37,7 +37,7 @@ from typing import Any
 from ragft.corpus.parse import Section, load_sections
 from ragft.corpus.split import load_splits
 from ragft.dataset.passages import to_passages
-from ragft.dataset.schema import QAPair, QAType, chunk_sha256, make_qa_id
+from ragft.dataset.schema import TYPE_MIX, QAPair, QAType, chunk_sha256, make_qa_id
 from ragft.llmclient import build_client
 from ragft.settings import REPO_ROOT, Settings
 
@@ -78,29 +78,64 @@ def build_tasks(sections: list[Section], split: str, rng: random.Random) -> list
     tasks: list[Task] = []
     usable = [s for s in sections if to_passages(s)]
 
-    for section in usable:
+    # ONE type per section, assigned in proportion to TYPE_MIX, rather than
+    # every type for every section.
+    #
+    # The textbook corpus had 299 training sections of ~13,000 characters, so
+    # asking each for four question types was reasonable. This corpus has 988
+    # sections of ~550 characters: the same scheme produced 4,446 tasks (~18
+    # hours) and would have drawn four questions out of a single short
+    # provision, which yields near-duplicates rather than four questions.
+    #
+    # Assigning one type per section covers more of the statute book for less
+    # compute, and the declared mix is preserved because assignment is
+    # proportional. Shuffled first so type does not correlate with statutory
+    # order, which would confound type with act.
+    single_types: list[QAType] = [t for t in TYPE_MIX if t is not QAType.MULTIHOP]
+    weight_total = sum(TYPE_MIX[t] for t in single_types)
+
+    pool = list(usable)
+    rng.shuffle(pool)
+    assigned: list[tuple[Section, QAType]] = []
+    cursor = 0
+    for qa_type in single_types:
+        share = TYPE_MIX[qa_type] / weight_total
+        take = round(share * len(pool))
+        for section in pool[cursor : cursor + take]:
+            assigned.append((section, qa_type))
+        cursor += take
+    # Rounding can leave a tail; give it to the largest bucket.
+    for section in pool[cursor:]:
+        assigned.append((section, single_types[0]))
+
+    for section, qa_type in assigned:
         passages = to_passages(section)
-        for i, qa_type in enumerate(
-            (QAType.FACTUAL, QAType.DEFINITION, QAType.APPLIED, QAType.UNANSWERABLE)
-        ):
-            passage = passages[i % len(passages)]
-            tasks.append(
-                Task(
-                    task_id=f"{split}:{section.section_id}:{qa_type.value}",
-                    qa_type=qa_type,
-                    sections=(section,),
-                    passages=(passage,),
-                    n=PER_CALL[qa_type],
-                    split=split,
-                )
+        tasks.append(
+            Task(
+                task_id=f"{split}:{section.section_id}:{qa_type.value}",
+                qa_type=qa_type,
+                sections=(section,),
+                passages=(passages[0],),
+                n=PER_CALL[qa_type],
+                split=split,
             )
+        )
 
     # Multi-hop pairs. Prefer two sections from the same book (a real
     # conceptual link), and allow the Biology <-> Anatomy seam, which is where
     # genuinely cross-title questions come from rather than contrived ones.
+    # Cap multi-hop to its declared share of PAIRS, not of sections. Pairing
+    # every two sections produced 494 tasks x 4 pairs = 41% of the dataset
+    # against a declared 20%, which would have silently rewritten the mix that
+    # `tests/test_dataset_mix.py` exists to enforce.
+    single_pairs = sum(t.n for t in tasks)
+    mh_share = TYPE_MIX[QAType.MULTIHOP]
+    target_mh_pairs = int(single_pairs * mh_share / (1 - mh_share))
+    max_mh_tasks = max(1, target_mh_pairs // PER_CALL[QAType.MULTIHOP])
+
     pool = list(usable)
     rng.shuffle(pool)
-    for a, b in zip(pool[::2], pool[1::2], strict=False):
+    for a, b in list(zip(pool[::2], pool[1::2], strict=False))[:max_mh_tasks]:
         tasks.append(
             Task(
                 task_id=f"{split}:{a.section_id}+{b.section_id}:multihop",
