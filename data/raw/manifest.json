@@ -1,39 +1,56 @@
 {
-  "note": "Provenance for the ingest corpus. PDFs are NOT committed; this file is. Licenses are re-verified against the OpenStax API on every ingest and ingestion aborts if any title is not CC BY 4.0.",
-  "books": [
+  "source": "India Code (indiacode.gov.in), DSpace REST API",
+  "licence_basis": "Indian Copyright Act, 1957 s.52(1)(q)(ii) - reproduction of bare legislative text is not an infringement. India Code publishes no machine-readable licence field, so this is a statutory exemption rather than a publisher's grant. Weaker than the OpenStax corpus this replaced; see ATTRIBUTION.md.",
+  "enforced_conditions": {
+    "collection": "SECTION",
+    "exact_act_name_match": true,
+    "note": "Department is recorded but NOT gated on. Criminal law is administered by Home Affairs and contract law by Law and Justice; neither bears on whether the text is bare legislative text, which is what s.52(1)(q)(ii) turns on."
+  },
+  "total_sections": 1327,
+  "acts": [
     {
-      "slug": "biology",
-      "title": "Biology",
-      "edition": "1st",
-      "uuid": "185cbf87-c72e-48f5-b51e-f14f21b5eabd",
-      "print_isbn_13": "978-1-938168-09-3",
-      "publish_date": "2016-10-21",
-      "pdf_url": "https://assets.openstax.org/oscms-prodcms/media/documents/Biology-OP_xQoZM8Z.pdf",
-      "path": "data/raw/biology.pdf",
-      "bytes": 279388465,
-      "sha256": "723dec671a4da7bcd6f665c1504253f2d6f3ce162de9e80949f868c16cdb770e",
-      "page_count": 1480,
-      "fetched_at": "2026-08-07T13:29:58+0000",
-      "license_name": "Creative Commons Attribution License",
-      "license_version": "4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0/"
+      "slug": "bns2023",
+      "act_name": "The Bharatiya Nyaya Sanhita, 2023",
+      "year": 2023,
+      "era": "recodified_2023",
+      "replaces": "The Indian Penal Code, 1860",
+      "sections_fetched": 358,
+      "sections_expected": 358,
+      "repealed_sections": 0,
+      "fetched_at": "2026-09-01T18:11:43+0000"
     },
     {
-      "slug": "anatomy-and-physiology",
-      "title": "Anatomy and Physiology",
-      "edition": "1st",
-      "uuid": "14fb4ad7-39a1-4eee-ab6e-3ef2482e3e22",
-      "print_isbn_13": "978-1-938168-13-0",
-      "publish_date": "2013-04-25",
-      "pdf_url": "https://assets.openstax.org/oscms-prodcms/media/documents/AnatomyandPhysiology-OP.pdf",
-      "path": "data/raw/anatomy-and-physiology.pdf",
-      "bytes": 135405076,
-      "sha256": "16cb34457cbaa66cc8a4ddd70e745dba0611d6f942bebe51d505ed6e7bd80362",
-      "page_count": 1420,
-      "fetched_at": "2026-08-07T13:30:01+0000",
-      "license_name": "Creative Commons Attribution License",
-      "license_version": "4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0/"
+      "slug": "bnss2023",
+      "act_name": "The Bharatiya Nagarik Suraksha Sanhita, 2023",
+      "year": 2023,
+      "era": "recodified_2023",
+      "replaces": "The Code of Criminal Procedure, 1973",
+      "sections_fetched": 531,
+      "sections_expected": 531,
+      "repealed_sections": 0,
+      "fetched_at": "2026-09-01T18:11:54+0000"
+    },
+    {
+      "slug": "bsa2023",
+      "act_name": "The Bharatiya Sakshya Adhiniyam, 2023",
+      "year": 2023,
+      "era": "recodified_2023",
+      "replaces": "The Indian Evidence Act, 1872",
+      "sections_fetched": 170,
+      "sections_expected": 170,
+      "repealed_sections": 0,
+      "fetched_at": "2026-09-01T18:11:57+0000"
+    },
+    {
+      "slug": "contract1872",
+      "act_name": "The Indian Contract Act, 1872",
+      "year": 1872,
+      "era": "legacy",
+      "replaces": null,
+      "sections_fetched": 268,
+      "sections_expected": 238,
+      "repealed_sections": 0,
+      "fetched_at": "2026-09-01T18:12:02+0000"
     }
   ]
 }

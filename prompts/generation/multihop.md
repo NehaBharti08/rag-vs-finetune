@@ -1,19 +1,19 @@
-Write {n} MULTI-HOP SYNTHESIS questions using BOTH passages below.
+Write {n} MULTI-HOP questions using BOTH provisions below.
 
-Each question MUST require information from both passages to answer correctly.
-A question answerable from either passage alone is a failure - discard it and
-write another.
+Each question MUST require both provisions to answer. A question answerable
+from either alone is a failure - discard it and write another.
 
-Good multi-hop questions connect a mechanism in one passage to a structure,
-consequence, or process in the other. State the connection explicitly in the
-`why` field.
+These statutes interlock by design: an offence is defined in one, its procedure
+in another, its evidentiary rule in a third. Good multi-hop questions exploit
+that real structure - for example how an offence is tried, or what must be
+proved to establish it. State the connection explicitly in `why`.
 
-PASSAGE A ({book_a}, section {label_a} - {title_a}):
+PROVISION A ({act_a}, section {label_a} - {title_a}):
 ---
 {passage_a}
 ---
 
-PASSAGE B ({book_b}, section {label_b} - {title_b}):
+PROVISION B ({act_b}, section {label_b} - {title_b}):
 ---
 {passage_b}
 ---

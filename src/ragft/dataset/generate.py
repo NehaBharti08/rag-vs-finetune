@@ -119,18 +119,18 @@ def render(task: Task) -> str:
         a, b = task.sections
         return load_prompt("multihop").format(
             n=task.n,
-            book_a=a.book_title,
+            act_a=a.act_name,
             label_a=a.label,
             title_a=a.title,
             passage_a=task.passages[0],
-            book_b=b.book_title,
+            act_b=b.act_name,
             label_b=b.label,
             title_b=b.title,
             passage_b=task.passages[1],
         )
     s = task.sections[0]
     return load_prompt(task.qa_type.value).format(
-        n=task.n, book=s.book_title, label=s.label, title=s.title, passage=task.passages[0]
+        n=task.n, act=s.act_name, label=s.label, title=s.title, passage=task.passages[0]
     )
 
 
@@ -175,7 +175,7 @@ def to_pairs(task: Task, items: list[dict[str, Any]], model: str) -> list[QAPair
                 source_section_ids=section_ids,
                 source_chunk_sha256=[chunk_sha256(p) for p in task.passages],
                 split=task.split,
-                book_slugs=sorted({s.book_slug for s in task.sections}),
+                act_slugs=sorted({s.act_slug for s in task.sections}),
                 generator_model=model,
             )
         )

@@ -62,7 +62,7 @@ class GoldItem:
     stratum: str
     source_section_ids: list[str]
     source_chunk_sha256: list[str]
-    book_slug: str
+    act_slug: str
     citation: str
     generator_model: str
     unanswerable: bool = False
@@ -125,7 +125,7 @@ def _generate_one(
 ) -> None:
     prompt = template.format(
         n=PER_SECTION,
-        book=section.book_title,
+        act=section.act_name,
         label=section.label,
         title=section.title,
         passage=passage,
@@ -154,7 +154,7 @@ def _generate_one(
                 stratum=stratum,
                 source_section_ids=[section.section_id],
                 source_chunk_sha256=[chunk_sha256(passage)],
-                book_slug=section.book_slug,
+                act_slug=section.act_slug,
                 citation=section.citation,
                 generator_model=client.model,
             )

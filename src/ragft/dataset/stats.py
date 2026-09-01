@@ -73,7 +73,7 @@ def build() -> dict[str, Any]:
             "val": sum(r["split"] == "val" for r in rows),
         },
         "by_type": dict(Counter(r["qa_type"] for r in rows).most_common()),
-        "by_book": dict(Counter(b for r in rows for b in r["book_slugs"]).most_common()),
+        "by_act": dict(Counter(a for r in rows for a in r["act_slugs"]).most_common()),
         "sections_covered": len({s for r in rows for s in r["source_section_ids"]}),
         "generation": gen,
         "filtering": filt,

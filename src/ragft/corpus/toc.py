@@ -1,16 +1,27 @@
-"""Canonical section registry, and the citation validator built on it.
+"""Canonical section registry, and the statute citation validator built on it.
 
-This is the machinery that makes hallucination measurable **without an LLM
-judge**. The corpus has a finite, known set of sections and page ranges, so a
-citation either resolves against it or it does not. That turns a subjective
-property ("is this answer grounded?") into a lookup: free, unbiased, and
-exactly reproducible across runs.
+This is what makes hallucination measurable **without an LLM judge**. The corpus
+is a finite, known set of acts and section numbers, so a citation either resolves
+against it or it does not. That turns a subjective property ("is this answer
+grounded?") into a lookup: free, unbiased, and exactly reproducible.
 
-It is also why the answer format carries a page-level citation at all. A model
-that invents `Biology, S7.3, p.999` is detectably wrong even when the prose
-around it is fluent and plausible -- which is precisely the failure mode a
-fine-tuned model is expected to exhibit when it has to recall citations from
-parameters instead of reading them off retrieved context.
+Legal citation suits this better than the textbook citation it replaces. A
+fabricated case or section is a real, consequential failure mode in legal
+practice rather than a benchmark curiosity, and the correct form is exact:
+
+    The Bharatiya Nyaya Sanhita, 2023, S103
+
+Statutes are cited by section, never by page, so the page component of the
+previous format is gone. The four grading levels survive the change intact,
+because section number is the exact analogue of the old chapter.section:
+
+    parseable        produced a citation at all
+    act exists       named a real act in the corpus
+    section exists   named a real section OF THAT ACT
+    section correct  named the section the question came from
+
+Collapsing those into one "validity" number is what hides the interesting
+result, so `ragft.eval.metrics.citation` reports all four.
 """
 
 from __future__ import annotations
@@ -20,30 +31,43 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import lru_cache
 
-from ragft.corpus.books import BOOKS
+from ragft.corpus.acts import ACTS
 from ragft.corpus.parse import Section, load_sections
 
-# `Biology, S7.3, p.214 (OpenStax, CC BY 4.0)` - the trailing licence block is
-# optional when parsing (a model may drop it) but its absence is itself
-# reported, because CC BY attribution is a licence obligation and a missing
-# credit is a real defect rather than a formatting nit.
+# `The Bharatiya Nyaya Sanhita, 2023, S103` / `... , section 103` / `... s. 498A`.
+# Deliberately permissive about the section marker and about a trailing "of
+# 2023": a model that gets the act and section right but writes the marker
+# differently has not hallucinated, and scoring it as though it had would
+# overstate the very metric this exists to measure.
 CITATION_RE = re.compile(
-    r"(?P<book>[A-Za-z][A-Za-z &]+?)\s*,\s*"
-    r"(?:§|S)\s*(?P<chapter>\d+)\.(?P<number>\d+)\s*,\s*"
-    r"p\.?\s*(?P<page>\d+)"
-    r"(?P<licence>\s*\(OpenStax,\s*CC\s*BY\s*4\.0\))?",
-    re.IGNORECASE,
+    # Two name shapes, and both must parse. Suffix form covers "Bharatiya Nyaya
+    # Sanhita" and "Indian Contract Act"; prefix form covers "Code of Criminal
+    # Procedure", where the noun leads.
+    #
+    # The prefix form matters for a specific measurement. If a repealed-Act
+    # citation failed to parse it would be counted as "produced no citation"
+    # rather than "cited an act outside the corpus" - understating exactly the
+    # behaviour this corpus was chosen to expose, namely a pre-2024 model
+    # answering from the IPC, CrPC or Evidence Act.
+    r"(?P<act>(?:The\s+)?(?:"
+    # U+2019 is deliberate: statute titles carry typographic apostrophes
+    # (e.g. "The Bankers' Books Evidence Act"), and a model will reproduce them.
+    r"[A-Z][A-Za-z'’\- ]{4,70}?(?:Sanhita|Adhiniyam|Act|Code|Sahita)"  # noqa: RUF001
+    r"|Code\s+of\s+[A-Z][A-Za-z'’\- ]{4,60}?"  # noqa: RUF001
+    r"))"
+    r"\s*,?\s*(?:of\s+)?(?P<year>1[6-9]\d{2}|20\d{2})?"
+    # Longest alternatives first: alternation is first-match, so `[Ss]\.` must
+    # come after `[Ss]ection` or "section 103" would match on the bare "s".
+    r"\s*[,;]?\s*(?:§|[Ss]ection|[Ss]ec\.?|[Ss]\.)\s*" r"(?P<section>\d{1,4}[A-Z]{0,3})",
+    re.UNICODE,
 )
-
-_TITLE_TO_SLUG = {b.short_title.lower(): b.slug for b in BOOKS}
 
 
 class CitationVerdict(StrEnum):
     VALID = "valid"
     UNPARSEABLE = "unparseable"
-    UNKNOWN_BOOK = "unknown_book"
+    UNKNOWN_ACT = "unknown_act"
     UNKNOWN_SECTION = "unknown_section"
-    PAGE_OUT_OF_RANGE = "page_out_of_range"
 
 
 @dataclass(frozen=True)
@@ -52,14 +76,29 @@ class CitationCheck:
 
     raw: str
     verdict: CitationVerdict
+    act_slug: str | None = None
     section_id: str | None = None
-    cited_page: int | None = None
-    expected_pages: tuple[int, int] | None = None
-    has_licence_attribution: bool = False
+    cited_section: str | None = None
 
     @property
     def is_valid(self) -> bool:
+        """True when the cited section genuinely exists in a corpus act."""
         return self.verdict is CitationVerdict.VALID
+
+
+def _normalise_act(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip().lower().removeprefix("the ")).strip(" ,.")
+
+
+# Repealed predecessors are deliberately NOT in this lookup: they must resolve
+# as `unknown_act`, not as valid. They are listed in `acts.py` under each act's
+# `replaces` field for reporting.
+_ACT_LOOKUP: dict[str, str] = {}
+for _act in ACTS:
+    _ACT_LOOKUP[_normalise_act(_act.exact_name)] = _act.slug
+    _ACT_LOOKUP[_normalise_act(_act.short_name)] = _act.slug
+    # Bare "Nyaya Sanhita" and similar shorthands a model plausibly writes.
+    _ACT_LOOKUP[_normalise_act(_act.short_name.split(" ", 1)[-1])] = _act.slug
 
 
 class SectionRegistry:
@@ -80,46 +119,25 @@ class SectionRegistry:
             return CitationCheck(raw=text.strip()[:120], verdict=CitationVerdict.UNPARSEABLE)
 
         raw = m.group(0)
-        has_licence = m.group("licence") is not None
-        slug = _TITLE_TO_SLUG.get(m.group("book").strip().lower())
+        slug = _ACT_LOOKUP.get(_normalise_act(m.group("act")))
         if slug is None:
-            return CitationCheck(
-                raw, CitationVerdict.UNKNOWN_BOOK, has_licence_attribution=has_licence
-            )
+            return CitationCheck(raw, CitationVerdict.UNKNOWN_ACT)
 
-        section_id = f"{slug}:{m.group('chapter')}.{m.group('number')}"
-        section = self.by_id.get(section_id)
-        if section is None:
-            return CitationCheck(
-                raw,
-                CitationVerdict.UNKNOWN_SECTION,
-                section_id,
-                has_licence_attribution=has_licence,
-            )
+        section = m.group("section")
+        section_id = f"{slug}:{section}"
+        if section_id not in self.by_id:
+            return CitationCheck(raw, CitationVerdict.UNKNOWN_SECTION, slug, None, section)
 
-        page = int(m.group("page"))
-        expected = (section.printed_page_start, section.printed_page_end)
-        # A one-page tolerance: sections legitimately begin mid-page, so a
-        # reader could reasonably cite either side of a boundary. Wider than
-        # that is a fabricated page, not a rounding disagreement.
-        if not (expected[0] - 1 <= page <= expected[1] + 1):
-            return CitationCheck(
-                raw, CitationVerdict.PAGE_OUT_OF_RANGE, section_id, page, expected, has_licence
-            )
-
-        return CitationCheck(raw, CitationVerdict.VALID, section_id, page, expected, has_licence)
+        return CitationCheck(raw, CitationVerdict.VALID, slug, section_id, section)
 
     def validate_all(self, texts: list[str]) -> dict[str, float | int]:
-        """Aggregate validity over many answers - the hallucination metric."""
+        """Aggregate validity over many answers."""
         checks = [self.validate(t) for t in texts]
         n = len(checks) or 1
         counts = {v: sum(c.verdict is v for c in checks) for v in CitationVerdict}
         return {
             "n": len(checks),
             "valid_rate": round(counts[CitationVerdict.VALID] / n, 4),
-            "licence_attribution_rate": round(
-                sum(c.has_licence_attribution for c in checks) / n, 4
-            ),
             **{f"n_{v.value}": counts[v] for v in CitationVerdict},
         }
 
