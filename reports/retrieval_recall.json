@@ -1,0 +1,14 @@
+{
+  "split": "val",
+  "questions": 281,
+  "excluded_multihop": 60,
+  "recall@1": 0.6014,
+  "recall@3": 0.7224,
+  "recall@5": 0.7722,
+  "recall@10": 0.8185,
+  "recall@20": 0.8612,
+  "mean_rank_when_found": 2.4,
+  "never_found": 39,
+  "verdict": "WEAK",
+  "interpretation": "recall@5 < 0.8: retrieval is the bottleneck. RAG-arm failures are RETRIEVAL failures and must not be read as a verdict on RAG as a method."
+}

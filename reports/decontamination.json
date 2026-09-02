@@ -1,12 +1,12 @@
 {
   "input": "filtered.jsonl",
-  "rows": 3955,
-  "train_rows": 3524,
-  "val_rows": 431,
+  "rows": 5019,
+  "train_rows": 4470,
+  "val_rows": 549,
   "enforcement": {
     "threshold_applied": 0.95,
-    "val_before": 432,
-    "val_after": 431,
+    "val_before": 550,
+    "val_after": 549,
     "removed": 1,
     "examples": [
       {
@@ -15,7 +15,7 @@
         "max_similarity": 0.9748
       }
     ],
-    "residual_at_0.90": 11,
+    "residual_at_0.90": 20,
     "residual_note": "Reported, not acted on. The 0.95 threshold was fixed before these numbers existed; tightening it now would be a post-hoc adjustment."
   },
   "all_passed": true,
@@ -24,8 +24,8 @@
       "name": "provenance",
       "passed": true,
       "rows_by_split": {
-        "train": 3524,
-        "val": 431
+        "train": 4470,
+        "val": 549
       },
       "split_violations": 0,
       "train_sections_used": 988,
@@ -38,7 +38,7 @@
       "passed": true,
       "n": 13,
       "texts_with_overlap": 0,
-      "of": 431,
+      "of": 549,
       "examples": []
     },
     {
@@ -46,7 +46,7 @@
       "passed": true,
       "threshold": 0.7,
       "pairs": 0,
-      "of": 431,
+      "of": 549,
       "examples": []
     },
     {
@@ -55,15 +55,15 @@
       "model": "BAAI/bge-small-en-v1.5",
       "threshold": 0.95,
       "over_threshold": 0,
-      "of": 431,
+      "of": 549,
       "max_similarity": 0.9469,
-      "mean_max_similarity": 0.8117,
+      "mean_max_similarity": 0.815,
       "histogram": {
         "0.00-0.50": 0,
-        "0.50-0.70": 1,
-        "0.70-0.80": 169,
-        "0.80-0.90": 251,
-        "0.90-0.95": 10,
+        "0.50-0.70": 2,
+        "0.70-0.80": 205,
+        "0.80-0.90": 323,
+        "0.90-0.95": 19,
         "0.95-1.01": 0
       }
     },
@@ -72,7 +72,7 @@
       "passed": true,
       "threshold": 0.7,
       "pairs": 0,
-      "of": 3524,
+      "of": 4470,
       "examples": []
     }
   ],
