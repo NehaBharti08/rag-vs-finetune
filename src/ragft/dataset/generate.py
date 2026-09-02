@@ -92,14 +92,27 @@ def build_tasks(sections: list[Section], split: str, rng: random.Random) -> list
     # proportional. Shuffled first so type does not correlate with statutory
     # order, which would confound type with act.
     single_types: list[QAType] = [t for t in TYPE_MIX if t is not QAType.MULTIHOP]
-    weight_total = sum(TYPE_MIX[t] for t in single_types)
+
+    # Weight by share / pairs-per-call, NOT by share alone.
+    #
+    # TYPE_MIX declares a share of PAIRS, but a section yields a different
+    # number of pairs depending on its type: 4 for factual, 1 for unanswerable.
+    # Allocating sections by pair-share directly therefore over-produces the
+    # high-yield types and starves the low-yield ones. It delivered factual at
+    # 55.9% against a declared 40%, and unanswerable at 3.5% against 10% -
+    # starving refusal training for the second time in this project, by a
+    # different mechanism than the first.
+    #
+    # Dividing by PER_CALL converts a pair-share into a section-share.
+    weights = {t: TYPE_MIX[t] / PER_CALL[t] for t in single_types}
+    weight_total = sum(weights.values())
 
     pool = list(usable)
     rng.shuffle(pool)
     assigned: list[tuple[Section, QAType]] = []
     cursor = 0
     for qa_type in single_types:
-        share = TYPE_MIX[qa_type] / weight_total
+        share = weights[qa_type] / weight_total
         take = round(share * len(pool))
         for section in pool[cursor : cursor + take]:
             assigned.append((section, qa_type))
@@ -217,7 +230,12 @@ def to_pairs(task: Task, items: list[dict[str, Any]], model: str) -> list[QAPair
     return pairs
 
 
-def run(splits: list[str], workers: int = 3, limit: int | None = None) -> dict[str, Any]:
+def run(
+    splits: list[str],
+    workers: int = 3,
+    limit: int | None = None,
+    only_types: list[str] | None = None,
+) -> dict[str, Any]:
     QA_DIR.mkdir(parents=True, exist_ok=True)
     out_path = QA_DIR / "raw.jsonl"
     done_path = QA_DIR / "completed_tasks.txt"
@@ -242,6 +260,11 @@ def run(splits: list[str], workers: int = 3, limit: int | None = None) -> dict[s
         }
 
     pending = [t for t in tasks if t.task_id not in done]
+    # Top-up mode: generate only under-delivered types instead of the whole
+    # plan. Used when the delivered mix drifts from TYPE_MIX and only some
+    # types need more, which is far cheaper than regenerating everything.
+    if only_types:
+        pending = [t for t in pending if t.qa_type.value in only_types]
     if limit:
         pending = pending[:limit]
 
@@ -317,8 +340,9 @@ def main() -> None:
     parser.add_argument("--splits", nargs="+", default=["train", "val"])
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--only-types", nargs="*", default=None, help="top up just these QA types")
     args = parser.parse_args()
-    run(args.splits, workers=args.workers, limit=args.limit)
+    run(args.splits, workers=args.workers, limit=args.limit, only_types=args.only_types)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,80 @@
+{
+  "input": "filtered.jsonl",
+  "rows": 3955,
+  "train_rows": 3524,
+  "val_rows": 431,
+  "enforcement": {
+    "threshold_applied": 0.95,
+    "val_before": 432,
+    "val_after": 431,
+    "removed": 1,
+    "examples": [
+      {
+        "qa_id": "749dd7dada1ddab1",
+        "question": "When is a principal restricted from revoking the authority granted to an agent, even if that authority has not been exer",
+        "max_similarity": 0.9748
+      }
+    ],
+    "residual_at_0.90": 11,
+    "residual_note": "Reported, not acted on. The 0.95 threshold was fixed before these numbers existed; tightening it now would be a post-hoc adjustment."
+  },
+  "all_passed": true,
+  "checks": [
+    {
+      "name": "provenance",
+      "passed": true,
+      "rows_by_split": {
+        "train": 3524,
+        "val": 431
+      },
+      "split_violations": 0,
+      "train_sections_used": 988,
+      "eval_unseen_sections_total": 127,
+      "train_eval_section_overlap": [],
+      "examples": []
+    },
+    {
+      "name": "ngram_val_vs_train",
+      "passed": true,
+      "n": 13,
+      "texts_with_overlap": 0,
+      "of": 431,
+      "examples": []
+    },
+    {
+      "name": "minhash_val_vs_train",
+      "passed": true,
+      "threshold": 0.7,
+      "pairs": 0,
+      "of": 431,
+      "examples": []
+    },
+    {
+      "name": "embedding_val_vs_train",
+      "passed": true,
+      "model": "BAAI/bge-small-en-v1.5",
+      "threshold": 0.95,
+      "over_threshold": 0,
+      "of": 431,
+      "max_similarity": 0.9469,
+      "mean_max_similarity": 0.8117,
+      "histogram": {
+        "0.00-0.50": 0,
+        "0.50-0.70": 1,
+        "0.70-0.80": 169,
+        "0.80-0.90": 251,
+        "0.90-0.95": 10,
+        "0.95-1.01": 0
+      }
+    },
+    {
+      "name": "minhash_within_train",
+      "passed": true,
+      "threshold": 0.7,
+      "pairs": 0,
+      "of": 3524,
+      "examples": []
+    }
+  ],
+  "note": "The eval gold set is built in Phase 2. These checks cover the train/val boundary and within-train duplication; the same functions are re-run against the gold set once it exists."
+}
