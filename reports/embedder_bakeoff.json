@@ -1,0 +1,20 @@
+{
+  "candidates": {
+    "BAAI/bge-base-en-v1.5": {
+      "recall@1": 0.6014,
+      "recall@3": 0.7224,
+      "recall@5": 0.7722,
+      "recall@10": 0.8185,
+      "recall@20": 0.8612
+    },
+    "BAAI/bge-large-en-v1.5": {
+      "recall@1": 0.6548,
+      "recall@3": 0.7829,
+      "recall@5": 0.8114,
+      "recall@10": 0.8648,
+      "recall@20": 0.8932
+    }
+  },
+  "chosen": "BAAI/bge-large-en-v1.5",
+  "criterion": "recall@5 on val, measured before any arm ran"
+}
