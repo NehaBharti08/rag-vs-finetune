@@ -139,14 +139,10 @@ def render(p: dict[str, Any]) -> str:
             lambda e: f"**{e['citation']['section_correct_rate']:.1%}**",
         ),
         row(
-            "**Page inside that section**",
-            lambda e: f"**{e['citation']['page_in_range_rate']:.1%}**",
+            "Names an act in the corpus",
+            lambda e: f"{e['citation']['act_exists_rate']:.1%}",
         ),
         row("Fabrication rate", lambda e: f"{e['citation']['fabrication_rate']:.1%}"),
-        row(
-            "CC BY attribution present",
-            lambda e: f"{e['citation']['licence_attribution_rate']:.1%}",
-        ),
         row("Format valid", lambda e: f"{e['format']['valid_rate']:.1%}"),
         row(
             "Retrieval found the source",
@@ -195,7 +191,7 @@ def main() -> None:
         e = payload["arms"][name]
         print(
             f"  {name:20s} correct_section={e['citation']['section_correct_rate']:.1%} "
-            f"page={e['citation']['page_in_range_rate']:.1%} "
+            f"out_of_corpus={e['citation']['out_of_corpus_act_rate']:.1%} "
             f"retrieval_hit={e['retrieval_hit_rate']}"
         )
 

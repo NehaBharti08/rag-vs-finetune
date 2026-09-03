@@ -1,0 +1,59 @@
+{
+  "arm": "A1_base_zeroshot",
+  "n": 300,
+  "format": {
+    "n": 300,
+    "valid_rate": 0.9967,
+    "complete_rate": 0.9967,
+    "has_answer_rate": 0.9967,
+    "has_why_rate": 1.0,
+    "has_source_rate": 1.0
+  },
+  "citation": {
+    "n": 300,
+    "parseable_rate": 0.9867,
+    "act_exists_rate": 0.9867,
+    "section_exists_rate": 0.7833,
+    "section_correct_rate": 0.0033,
+    "fabrication_rate": 0.78,
+    "out_of_corpus_act_rate": 0.0,
+    "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+  },
+  "latency": {
+    "n": 300,
+    "p50_seconds": 1.872,
+    "p95_seconds": 2.3738,
+    "mean_seconds": 1.8919,
+    "min_seconds": 1.0993,
+    "max_seconds": 2.6189,
+    "gpu_seconds_per_query": 1.8919,
+    "usd_per_1k_queries": 0.1892,
+    "usd_per_gpu_hour_assumed": 0.36,
+    "mean_prompt_tokens": 485.6,
+    "mean_completion_tokens": 97.5,
+    "contention": {
+      "memory_used_mib": 4,
+      "utilization_pct": 0,
+      "exclusive": true
+    },
+    "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+  },
+  "answerability": {
+    "judge_model": "gemma4:e4b",
+    "n": 300,
+    "parametric_answerable": 80,
+    "parametric_answerable_rate": 0.2667,
+    "score_distribution": {
+      "2": 80,
+      "0": 148,
+      "1": 72
+    },
+    "by_stratum": {
+      "eval_unseen": 0.2667,
+      "train_seen": 0.2667
+    },
+    "judge_unparseable": 0,
+    "judge_sample_written": 100,
+    "gate_note": "This rate IS threat 4 measured. A high share means Qwen2.5 already knows the corpus, every cell compresses toward ceiling, and Phase 4 training compute buys little. That is the Phase 3 go/no-go decision, taken before the compute is spent rather than after."
+  }
+}
