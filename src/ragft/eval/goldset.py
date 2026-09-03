@@ -49,6 +49,26 @@ GOLD_SEED = 20260808
 # A third family: not Qwen (the student), not gemma (the training generator).
 GOLD_GENERATOR = "llama3:8b"
 
+
+# Demonstrative reference to text the model will never see at inference.
+#
+# Widened after 20% of a generated gold set leaked. The prompts were rewritten
+# for statutes and speak of "provisions", but this filter still screened only
+# the biology vocabulary ("passage", "text", "excerpt") and caught 0 of 60.
+#
+# Naming a statute is NOT leakage - "Under the Bharatiya Nyaya Sanhita, what
+# punishment applies to murder?" is perfectly self-contained. Only pointing at
+# unseen text is.
+LEAKED_REFERENCE = re.compile(
+    r"""(?ix)
+      \b(?:the|this|that|said)\s+
+        (?:provision|section|sub-?section|clause|illustration|excerpt|passage|text|paragraph)\b
+    | \baccording\ to\ the\b
+    | \bas\ (?:set\ out|stated|provided|mentioned|described)\ (?:above|below|herein)\b
+    | \bprovision\s*\([a-z]\)
+    """
+)
+
 TARGET_EVAL_UNSEEN = 240
 TARGET_TRAIN_SEEN = 60
 PER_SECTION = 3
@@ -138,9 +158,10 @@ def _generate_one(
         reference = str(entry.get("reference", "")).strip()
         if not question or not reference or not question.endswith("?"):
             continue
-        # Same leakage rule as the training set: an eval question that
-        # mentions the passage is unanswerable without one.
-        if re.search(r"(?i)\b(?:the|this)\s+(?:passage|text|excerpt)\b", question):
+        # A question pointing at text the model never sees is unanswerable
+        # as posed, for EVERY arm - it would depress all four cells equally
+        # while looking like a model failure rather than a bad question.
+        if LEAKED_REFERENCE.search(question):
             continue
         gold_id = _gold_id(question)
         if gold_id in seen_ids:
