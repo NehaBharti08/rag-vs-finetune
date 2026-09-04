@@ -1,0 +1,18 @@
+{
+  "frozen": true,
+  "digest": "1c9bcc045c36a2b1faea4e4f423e2479e33e440ac8ac7e06a39d845fc09b2ee1",
+  "files": {
+    "data/eval/gold.jsonl": "6cb89a80fb6ff6c2e9ba8804903998efc7f64f34b49a35f1c84da8576703130a",
+    "prompts/judge/accuracy.md": "c9772edf9bdac3abd83d158023002ff762e16ca928cadadf23d28d6727ba318d",
+    "prompts/judge/groundedness.md": "f143ab87ffc66c420e0638f1d8b72bd2e8823b3209203b5f701949acaccfc22b",
+    "src/ragft/eval/metrics/__init__.py": "4b34e4b05060e9481fd00296a6d3eb005a669141883a502c3b97a85936eb1543",
+    "src/ragft/eval/metrics/abstention.py": "69b1d7a8e174fce03f54c950469b37f0c66fff446faa608324a1a232eb0b57ab",
+    "src/ragft/eval/metrics/accuracy.py": "8e1e4e48603936a49686cf5455aed924da49faa6472787b0068a39a5c53bb3c4",
+    "src/ragft/eval/metrics/agreement.py": "57b5bc0d7d82bdc3e148727506dabbdff36e4fa920e04f69d389c4c4e5d2959c",
+    "src/ragft/eval/metrics/citation.py": "edd9fb2233c0470aad12f788bf5e238d9df8de0d858b5926d28ab255cd826a09",
+    "src/ragft/eval/metrics/format_check.py": "a03b41786c24f196b5fe7f1dda755b6e96c8aadb34d428df7d299d4e8ae7b570",
+    "src/ragft/eval/metrics/latency.py": "2913542f96aa68ff4ec7038fdeaea4a727bc766d466003843c0a094a2bf00552",
+    "src/ragft/eval/metrics/mmlu.py": "0faea13ea4432c172a25c898bdbd0dd5c1f63a987583b7386acff30d7a299dec"
+  },
+  "note": "Written by ragft.eval.frozen. Once `frozen` is true, any change to the eval set, judge prompts, or metric code must be a deliberate re-freeze recorded in a PR - not an edit."
+}

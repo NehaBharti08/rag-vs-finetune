@@ -32,6 +32,7 @@ import argparse
 import json
 import random
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -241,9 +242,67 @@ def load_candidates() -> list[GoldItem]:
         return [GoldItem(**json.loads(line)) for line in fh if line.strip()]
 
 
+def finalize() -> dict[str, Any]:
+    """Promote human-verified candidates to the frozen gold set.
+
+    Only items a human marked `keep` survive. Items marked `drop` are excluded
+    and `flag` items are excluded too -- a flagged item is one the reviewer was
+    unsure about, and an uncertain item in an evaluation set is worse than a
+    missing one.
+
+    The unanswerable stratum is NOT synthesised here. It has to be hand-written,
+    because an LLM asked for unanswerable questions produces obviously
+    out-of-domain ones that make abstention look easy. If it is absent, the
+    abstention metric is simply not measured for this run and is reported as
+    absent rather than estimated.
+    """
+    verify_path = EVAL_DIR / "human_verification.jsonl"
+    if not verify_path.exists():
+        raise SystemExit(f"{verify_path} missing - run `ragft.eval.label verify` first")
+
+    verdicts = {
+        str(json.loads(line)["gold_id"]): str(json.loads(line)["verdict"])
+        for line in verify_path.open(encoding="utf-8")
+        if line.strip()
+    }
+    candidates = load_candidates()
+    kept = [c for c in candidates if verdicts.get(c.gold_id) == "keep"]
+    for item in kept:
+        item.human_verified = True
+
+    out = EVAL_DIR / "gold.jsonl"
+    with out.open("w", encoding="utf-8") as fh:
+        for item in kept:
+            fh.write(json.dumps(asdict(item), ensure_ascii=False) + "\n")
+
+    counts = Counter(v for v in verdicts.values())
+    summary = {
+        "candidates": len(candidates),
+        "verdicts": dict(counts),
+        "gold_items": len(kept),
+        "by_stratum": dict(Counter(i.stratum for i in kept)),
+        "unanswerable_items": sum(i.unanswerable for i in kept),
+        "abstention_measurable": any(i.unanswerable for i in kept),
+        "note": (
+            "Only human-verified `keep` items are included. Without a hand-written "
+            "unanswerable stratum the abstention metric is NOT measured for this "
+            "run, and is reported as absent rather than estimated."
+        ),
+    }
+    (EVAL_DIR / "gold_final_summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(summary, indent=2))
+    return summary
+
+
 def main() -> None:
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--finalize", action="store_true", help="promote verified candidates to gold.jsonl"
+    )
+    args = parser.parse_args()
+    finalize() if args.finalize else build()
 
 
 if __name__ == "__main__":

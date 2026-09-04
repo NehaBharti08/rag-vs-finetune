@@ -13,8 +13,8 @@ over one corpus, one evaluation set, one base checkpoint.
 
 </div>
 
-> **Status: Phase 3 partial — baseline arms measured.** This README is built up
-> phase by phase.
+> **Status: Phase 5 — the full 2×2 is measured.** This README is built up phase
+> by phase.
 > Sections marked _pending_ are filled in as the work behind them lands.
 > No number appears here before it has been measured.
 
@@ -38,54 +38,70 @@ The fourth cell is the one most write-ups omit, and it is usually the most
 interesting. Any conclusion of the form "X beats Y" is only credible with all
 four.
 
-## Results so far
+## Results
 
-**The headline is not what I expected, and it is not about accuracy.**
+**Fine-tuning alone made the model worse, and confidently so.** On its own it
+cites the correct statutory section **0.0%** of the time — below the
+untuned base model's 0.3% — while fabricating a citation to a real-but-wrong
+section in **99.0%** of answers. It is also *slower* than the base model.
+There is no axis on which fine-tuning alone wins here, including latency.
 
-On this corpus the base model already knows the biology — it answers
-**75.7%** of the gold set correctly with *no retrieval at all*.
-What it cannot do is say where the answer came from. It cites the correct
-section **1.3%** of the time.
+What it learned instead was the *form*: 99.0% of its citations name a real
+section and 100% follow the required answer format perfectly. It
+acquired the shape of a legal citation without the mapping underneath.
 
-So what retrieval buys here is **provenance, not knowledge**:
+### The full 2×2 (judge-free metrics)
 
-| Judge-free metric | A1 base, no retrieval | A2 base + RAG |
+|  | No retrieval | With retrieval |
 |---|---|---|
-| Cites a section that **exists** | 98.0% | 100.0% |
-| **Cites the CORRECT section** | **1.3%** | **70.0%** |
-| **Page inside that section** | **0.3%** | **99.7%** |
-| Fabrication rate (real section, wrong one) | 96.7% | 30.0% |
-| Mean prompt tokens | 418 | 2880 |
-| Latency p50 | 2.14s | 2.74s |
+| **Base model** | 0.3% | 83.7% |
+| **QLoRA fine-tuned** | **0.0%** | **88.3%** |
 
-None of these numbers need an LLM judge. They are string matches against a
-finite registry of real sections and page ranges.
+*Correct-section rate — cites the statutory provision the question came from.*
 
-**Three things worth noticing.**
+| Metric | A1 base | A2 +RAG | A3 fine-tuned | A4 FT+RAG |
+|---|---|---|---|---|
+| Cites a section that **exists** | 78.3% | 98.3% | 99.0% | 99.7% |
+| **Cites the CORRECT section** | 0.3% | 83.7% | **0.0%** | **88.3%** |
+| **Fabrication rate** | 78.0% | 14.7% | **99.0%** | 11.3% |
+| Format valid | 99.7% | 100.0% | 100.0% | 100.0% |
+| Latency p50 | 1.87s | 2.38s | 3.88s | 5.16s |
+| Mean prompt tokens | 486 | 1603 | 52 | 1139 |
 
-*The base model is confidently wrong, not vague.* It produces a well-formed
-citation 98.3% of the time, names a section that genuinely exists
-98.0% of the time, and attaches the CC BY suffix
-98.3% of the time — while being right about
-which section only 1.3% of the time. It has learned the *shape* of an
-OpenStax citation without the content mapping underneath.
+No number above needs an LLM judge. They are string matches against a finite
+registry of real acts and section numbers.
 
-*Retrieval is bounded by retrieval.* It surfaced the source section for
-89.3% of questions, and the model converted about
-78% of those into a correct
-citation. The remaining gap is not a generation failure.
+### What the fourth cell shows
 
-*Retrieval helps more where the model knows less.* Correct-section rate rises to
-75.3% on questions the base model could
-*not* already answer, versus 68.3% where it could.
+The cell most write-ups omit is the one that carries the result. **A4 beats A2
+by +4.7%** — fine-tuning does add something, but *only* on top of
+retrieval, and modestly. Without retrieval the same adapter is actively harmful.
+A head-to-head of "fine-tuned, no retrieval" against "base + RAG" — the usual
+two-arm comparison — would have reported a 84% gap and drawn the wrong
+conclusion about why.
 
-**The Phase 3 gate came back MARGINAL.** 75.7% parametric
-answerability means every cell of the 2×2 is compressed and Phase 4 deltas will
-be small. That was measured *before* spending training compute, which is what
-the gate is for. Full evidence: [`reports/baseline_A1.md`](reports/baseline_A1.md)
-and [`reports/arms_comparison.md`](reports/arms_comparison.md).
+### Fine-tuning is not free at inference
 
-_Fine-tuned arms (A3, A4) require an adapter — Phase 4._
+A3 is **slower** than A1 (3.88s vs 1.87s) despite a
+9× shorter prompt and fewer generated tokens. The LoRA adapter is
+attached unmerged, so every forward pass pays for the extra matmuls. Merging
+would remove this, and the reported figure should be read as the cost of the
+*unmerged* deployment rather than an inherent property of fine-tuning.
+
+### Where the base model actually stands
+
+**26.7%** of gold questions are answered correctly by the base model with
+no retrieval at all — and that number is itself **overstated**. The local judge
+was measured against 100 human labels at Cohen's κ = **0.452**, and it calls
+2.7× as many answers fully correct as a human does. Human-calibrated, the true
+rate is nearer **10%**.
+
+That κ is below the pre-registered 0.60 threshold, so **LLM-judged accuracy is
+reported as a secondary metric only** and every headline number above is
+judge-free. The rule was fixed before the measurement, not after.
+
+_Full evidence: [`reports/arms_comparison.md`](reports/arms_comparison.md),
+[`reports/baseline_A1.md`](reports/baseline_A1.md)._
 
 ## Relationship to VidyaRAG
 
