@@ -71,15 +71,32 @@ def read_lock() -> dict[str, Any]:
     return lock
 
 
-def write_lock(frozen: bool = False) -> dict[str, Any]:
+def write_lock(frozen: bool = False, reason: str | None = None) -> dict[str, Any]:
+    # A re-freeze that overwrites the digest it replaces destroys the audit
+    # trail it exists to create. Superseded digests are carried forward, so the
+    # lock itself records how many times the harness was re-frozen and why --
+    # answerable from the file rather than only from the git log.
+    previous = read_lock()
+    history: list[dict[str, Any]] = list(previous.get("history", []))
+    if previous.get("digest") and previous.get("frozen"):
+        history.append(
+            {
+                "digest": previous["digest"],
+                "superseded_by_reason": reason or "not stated",
+            }
+        )
+
     lock = {
         "frozen": frozen,
         "digest": compute_digest(),
         "files": collect_digests(),
+        "history": history,
         "note": (
             "Written by ragft.eval.frozen. Once `frozen` is true, any change to "
             "the eval set, judge prompts, or metric code must be a deliberate "
-            "re-freeze recorded in a PR - not an edit."
+            "re-freeze recorded in a PR - not an edit. `history` lists superseded "
+            "digests: a non-empty history means the harness was re-frozen, and "
+            "every such entry should be justifiable in the PR that made it."
         ),
     }
     LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -123,11 +140,14 @@ def main() -> None:
     group.add_argument("--check", action="store_true", help="verify against frozen.lock")
     group.add_argument("--write", action="store_true", help="record current state, unfrozen")
     group.add_argument("--freeze", action="store_true", help="record and FREEZE (Phase 2)")
+    parser.add_argument(
+        "--reason", default=None, help="why the harness is being re-frozen; stored in history"
+    )
     args = parser.parse_args()
 
     if args.check:
         raise SystemExit(check())
-    lock = write_lock(frozen=args.freeze)
+    lock = write_lock(frozen=args.freeze, reason=args.reason)
     print(f"Wrote {LOCK_PATH} (frozen={lock['frozen']}, digest={lock['digest'][:12]})")
 
 

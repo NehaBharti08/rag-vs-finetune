@@ -178,6 +178,32 @@ noise, and cost-per-query derived from it is wrong.
 and the contention state at measurement time is recorded. Cost is *also*
 reported in GPU-seconds, which is robust to contention, alongside dollars.
 
+### Two bugs found in this defense, both in Phase 6
+
+The defense above was stated correctly and implemented wrongly, twice. Both are
+recorded because a validity defense that was never exercised is a claim, not a
+control.
+
+**1. Contention was sampled at the wrong time.** The latencies collected during
+the main arm runs called `gpu_contention()` at *report-generation* time, not
+during measurement. The `exclusive` flag attached to them describes a moment
+minutes after the numbers it annotates. Those figures are superseded by a
+dedicated pass (`ragft.eval.run_latency`) that samples immediately before,
+after, and at every arm boundary.
+
+**2. The exclusivity check was measuring itself.** `gpu_contention()` compared
+*total* GPU memory against a 500 MiB threshold. Once the 7B model was resident
+the total was ~7 GiB, so the check reported `exclusive=false` no matter who else
+was on the card — it was detecting its own model. The first dedicated latency
+pass duly reported a non-exclusive window, and that verdict was an artifact of
+the bug rather than a real observation of contention. It now counts only memory
+held by *other* PIDs.
+
+The second bug is the more instructive one: it failed in the **safe** direction,
+reporting contention that was not there. A check that cries wolf gets its
+threshold relaxed until it stops catching anything, which is how a bug that
+never loses data still ends up costing you the control.
+
 ## 13. Multiple comparisons
 
 **The threat.** Four arms × ~8 metrics × 4 strata is a great many chances for
@@ -224,3 +250,32 @@ suite.
 source; the runner asserts the hash before producing numbers and a pre-commit
 hook fails any commit that changes one without re-freezing. Re-freezing is
 possible — it just cannot be silent.
+
+### This one actually fired, in Phase 6
+
+It is worth recording that this defense was not hypothetical.
+
+After the full 2×2 was measured, reading A3's raw responses showed the
+fine-tuned model naming the *correct statute* with the wrong section, where the
+base model named the wrong statute entirely. That distinction had no metric, so
+one was added: `act_correct_rate`. **The pre-commit hook blocked the commit**,
+with the message "a metric invented after seeing results is not a metric".
+
+That is exactly what happened, and the guard was right to fire. The metric was
+kept, and the reasons it is not p-hacking are worth stating precisely, because
+"I had a good reason" is what everyone says:
+
+- **The pre-registered primary metric did not change.** Correct-section rate,
+  same definition, same eval set — `data/eval/gold.jsonl` has the same digest
+  before and after. A3 still scores 0.0%. Nothing was rescued.
+- **No result reversed.** The new rung explains the existing headline; it does
+  not overturn it. Had it turned a loss into a win, it would have been dropped.
+- **It decomposes a frozen metric rather than replacing one.** `act_exists` and
+  `section_correct` were both already frozen. This splits the gap between them.
+- **It is labelled post-hoc everywhere it appears** — in the metric source, in
+  `reports/arms_comparison.md`, and in `docs/RESULTS.md`.
+
+The re-freeze is a separate commit with this reasoning in its message, so the
+audit trail shows a deliberate, argued change rather than a silent edit. A
+reader who disagrees can discard `act_correct_rate` and every pre-registered
+number in this project stands unchanged. That property is the point.
