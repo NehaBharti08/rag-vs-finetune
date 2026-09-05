@@ -158,7 +158,7 @@ ignore_missing_imports = true
 # code -- settings, corpus, dataset, retrieval, eval, analysis. Only the three
 # error codes caused by the untyped boundary are disabled, and only here.
 [[tool.mypy.overrides]]
-module = ["ragft.train.*", "ragft.eval.arms"]
+module = ["ragft.train.*", "ragft.eval.arms", "ragft.eval.run_mmlu", "ragft.eval.run_latency"]
 disable_error_code = ["no-untyped-call", "attr-defined", "assignment", "operator"]
 
 # Same situation at the pymupdf boundary: Document, get_text and close are all

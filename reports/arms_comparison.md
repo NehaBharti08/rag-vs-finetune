@@ -7,13 +7,21 @@ Arms run so far: A1_base_zeroshot, A2_base_rag, A3_ft_zeroshot, A4_ft_rag.
 ## Judge-free metrics
 
 None of these depend on an LLM judge, so none inherit the uncertainty of a
-local 9.6 GB judge whose agreement with a human is not yet established.
+local 9.6 GB judge measured at Cohen's kappa 0.45 against human labels
+(`reports/judge_agreement.md`).
+
+Levels 1-5 are a **ladder**: each is strictly harder than the one above it.
+Reporting only level 5 hides where an arm actually fails, and reporting only
+levels 1-2 makes fabrication look like grounding.
 
 | Metric | A1 base, no retrieval | A2 base + RAG | A3 fine-tuned, no retrieval | A4 fine-tuned + RAG |
 |---|---|---|---|---|
-| Cites a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
-| **Cites the CORRECT section** | **0.3%** | **83.7%** | **0.0%** | **88.3%** |
-| Names an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
+| 1. Produced a parseable citation | 98.7% | 100.0% | 100.0% | 100.0% |
+| 2. Named an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
+| 3. **Named the CORRECT act** | **47.7%** | **96.0%** | **90.3%** | **98.7%** |
+| 4. Cited a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
+| 5. **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.0%** | **88.3%** |
+| Right act, wrong section | 47.3% | 12.3% | 90.3% | 10.3% |
 | Fabrication rate | 78.0% | 14.7% | 99.0% | 11.3% |
 | Format valid | 99.7% | 100.0% | 100.0% | 100.0% |
 | Retrieval found the source | n/a | 94.0% | n/a | 94.0% |
@@ -33,3 +41,10 @@ the variable that determines whether retrieval had anything to add.
 |---|---|---|---|---|
 | parametric answerable | 1.2% (n=80) | 86.2% (n=80) | 0.0% (n=80) | 87.5% (n=80) |
 | parametric unanswerable | 0.0% (n=220) | 82.7% (n=220) | 0.0% (n=220) | 88.6% (n=220) |
+
+The two strata differ by at most a few points in every arm, and in A4 the
+gap runs the *wrong* way. Parametric answerability was the stratification
+variable this benchmark was designed around -- the one place fine-tuning
+was expected to win -- and it did not separate the arms. That is a null
+result on the design's central hypothesis, and it is reported here rather
+than dropped.

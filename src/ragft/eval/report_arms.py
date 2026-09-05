@@ -23,6 +23,25 @@ EVAL_DIR = REPO_ROOT / "data" / "eval"
 RESPONSES = EVAL_DIR / "responses"
 REPORTS = REPO_ROOT / "reports"
 
+# The checkpoint the fine-tuned arms were generated from. checkpoint-354 is the
+# end of EPOCH 1 (353 optimizer steps/epoch) and has the BEST validation loss of
+# the three: 0.887 vs 0.919 at epoch 2 and 1.059 at epoch 3. The model was
+# already overfitting after one epoch, so this is the pre-collapse checkpoint --
+# which matters, because it means A3's failure is not an artefact of evaluating
+# an over-trained adapter.
+ADAPTER_PROVENANCE = {
+    "path": "out/seed42_r16_lr0.0002_e3/checkpoint-354",
+    "epoch": 1,
+    "steps": 354,
+    "steps_per_epoch": 353,
+    "eval_loss": 0.8873,
+    "why_this_one": (
+        "Best validation loss of the three epoch checkpoints (0.887 / 0.919 / 1.059). "
+        "Validation loss rose monotonically from epoch 1, so this is the pre-collapse "
+        "checkpoint and A3's result is not an over-training artefact."
+    ),
+}
+
 ARM_LABELS = {
     "A1_base_zeroshot": "A1 base, no retrieval",
     "A2_base_rag": "A2 base + RAG",
@@ -100,7 +119,14 @@ def build() -> dict[str, Any]:
                     }
         arms[arm] = entry
 
-    payload = {"arms": arms, "arms_run": sorted(arms)}
+    # Provenance: which adapter produced the fine-tuned arms. Without this the
+    # results file cannot be tied to a checkpoint, and "which epoch was this?"
+    # becomes unanswerable after the fact.
+    payload = {
+        "arms": arms,
+        "arms_run": sorted(arms),
+        "adapter": ADAPTER_PROVENANCE,
+    }
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / "arms_comparison.json").write_text(
         json.dumps(payload, indent=2) + "\n", encoding="utf-8"
@@ -129,18 +155,32 @@ def render(p: dict[str, Any]) -> str:
         "## Judge-free metrics",
         "",
         "None of these depend on an LLM judge, so none inherit the uncertainty of a",
-        "local 9.6 GB judge whose agreement with a human is not yet established.",
+        "local 9.6 GB judge measured at Cohen's kappa 0.45 against human labels",
+        "(`reports/judge_agreement.md`).",
+        "",
+        "Levels 1-5 are a **ladder**: each is strictly harder than the one above it.",
+        "Reporting only level 5 hides where an arm actually fails, and reporting only",
+        "levels 1-2 makes fabrication look like grounding.",
         "",
         header,
         sep,
-        row("Cites a section that exists", lambda e: f"{e['citation']['section_exists_rate']:.1%}"),
+        row("1. Produced a parseable citation", lambda e: f"{e['citation']['parseable_rate']:.1%}"),
+        row("2. Named an act in the corpus", lambda e: f"{e['citation']['act_exists_rate']:.1%}"),
         row(
-            "**Cites the CORRECT section**",
+            "3. **Named the CORRECT act**",
+            lambda e: f"**{e['citation']['act_correct_rate']:.1%}**",
+        ),
+        row(
+            "4. Cited a section that exists",
+            lambda e: f"{e['citation']['section_exists_rate']:.1%}",
+        ),
+        row(
+            "5. **Cited the CORRECT section**",
             lambda e: f"**{e['citation']['section_correct_rate']:.1%}**",
         ),
         row(
-            "Names an act in the corpus",
-            lambda e: f"{e['citation']['act_exists_rate']:.1%}",
+            "Right act, wrong section",
+            lambda e: f"{e['citation']['right_act_wrong_section_rate']:.1%}",
         ),
         row("Fabrication rate", lambda e: f"{e['citation']['fabrication_rate']:.1%}"),
         row("Format valid", lambda e: f"{e['format']['valid_rate']:.1%}"),
@@ -172,12 +212,21 @@ def render(p: dict[str, Any]) -> str:
         for stratum in ("parametric_answerable", "parametric_unanswerable"):
             cells = []
             for a in names:
-                s = arms[a].get("by_stratum", {}).get(stratum)
+                st = arms[a].get("by_stratum", {}).get(stratum)
                 cells.append(
-                    f"{s['citation']['section_correct_rate']:.1%} (n={s['n']})" if s else "—"
+                    f"{st['citation']['section_correct_rate']:.1%} (n={st['n']})" if st else "—"
                 )
             lines.append(f"| {stratum.replace('_', ' ')} | " + " | ".join(cells) + " |")
-        lines.append("")
+        lines += [
+            "",
+            "The two strata differ by at most a few points in every arm, and in A4 the",
+            "gap runs the *wrong* way. Parametric answerability was the stratification",
+            "variable this benchmark was designed around -- the one place fine-tuning",
+            "was expected to win -- and it did not separate the arms. That is a null",
+            "result on the design's central hypothesis, and it is reported here rather",
+            "than dropped.",
+            "",
+        ]
 
     return "\n".join(lines)
 

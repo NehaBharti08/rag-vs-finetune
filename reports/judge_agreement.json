@@ -1,0 +1,27 @@
+{
+  "n_human_labels": 100,
+  "n_paired": 100,
+  "n_unmatched": 0,
+  "scale": "0 = wrong, 1 = partially correct, 2 = fully correct",
+  "kappa_unweighted": 0.4518,
+  "kappa_linear_weighted": 0.5112,
+  "kappa_binary_fully_correct": 0.462,
+  "exact_agreement_rate": 0.67,
+  "threshold": 0.6,
+  "threshold_met": false,
+  "human_fully_correct_rate": 0.1,
+  "judge_fully_correct_rate": 0.27,
+  "judge_inflation_factor": 2.7,
+  "confusion": {
+    "human0_judge0": 44,
+    "human0_judge1": 11,
+    "human0_judge2": 7,
+    "human1_judge0": 5,
+    "human1_judge1": 13,
+    "human1_judge2": 10,
+    "human2_judge0": 0,
+    "human2_judge1": 0,
+    "human2_judge2": 10
+  },
+  "consequence": "kappa is BELOW the pre-registered 0.60 threshold, so LLM-judged accuracy is reported as a SECONDARY metric only and every headline number in this project is judge-free (citation validity, format, MMLU, latency -- all mechanical). The threshold was fixed before the labels were collected."
+}
