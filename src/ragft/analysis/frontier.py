@@ -157,8 +157,9 @@ def render(p: dict[str, Any]) -> str:
         "",
         "## Training cost",
         "",
-        f"| Full {t['epochs_run']}-epoch run | {t['full_run_gpu_hours']} GPU-hours |",
+        "| What | Cost |",
         "|---|---|",
+        f"| Full {t['epochs_run']}-epoch run | {t['full_run_gpu_hours']} GPU-hours |",
         f"| Evaluated checkpoint (epoch {t['evaluated_epoch']}) | **{t['evaluated_checkpoint_gpu_hours']} GPU-hours** |",
         "",
         t["note"],
@@ -171,7 +172,8 @@ def render(p: dict[str, Any]) -> str:
         lines += [
             f"### {name.replace('_', ' ')}",
             "",
-            f"{c['baseline']} → {c['candidate']}, quality change **{c['quality_delta']:+.1%}**.",
+            f"{c['baseline']} → {c['candidate']}, quality change "
+            f"**{c['quality_delta'] * 100:+.1f} points** of correct-section rate.",
             "",
         ]
         if c.get("crossover_queries") is None:

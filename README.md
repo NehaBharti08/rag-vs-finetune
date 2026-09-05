@@ -9,7 +9,7 @@ over one corpus, one evaluation set, one base checkpoint.
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Corpus: CC BY 4.0](https://img.shields.io/badge/corpus-CC%20BY%204.0-lightgrey.svg)](ATTRIBUTION.md)
+[![Corpus: Indian statutes](https://img.shields.io/badge/corpus-Indian%20statutes-lightgrey.svg)](ATTRIBUTION.md)
 
 </div>
 
@@ -40,15 +40,15 @@ four.
 
 ## Results
 
-**Fine-tuning alone made the model worse, and confidently so.** On its own it
-cites the correct statutory section **0.0%** of the time — below the
-untuned base model's 0.3% — while fabricating a citation to a real-but-wrong
-section in **99.0%** of answers. It is also *slower* than the base model.
-There is no axis on which fine-tuning alone wins here, including latency.
+**Fine-tuning taught the model which *statute* governs a question, and nothing
+about which *section* of it.** Statute routing went from a coin flip to
+near-ceiling — **47.7% → 90.3%** — while correct-section accuracy stayed at
+**0.0%**, below the untuned base model's 0.3%.
 
-What it learned instead was the *form*: 99.0% of its citations name a real
-section and 100% follow the required answer format perfectly. It
-acquired the shape of a legal citation without the mapping underneath.
+That is one adapter learning a 4-way mapping and failing a ~1,090-way one from
+2,830 training examples. It is not "fine-tuning doesn't work"; it is a claim
+about what a thin adapter can absorb, and about which half of a citation is
+cheap to learn.
 
 ### The full 2×2 (judge-free metrics)
 
@@ -59,78 +59,146 @@ acquired the shape of a legal citation without the mapping underneath.
 
 *Correct-section rate — cites the statutory provision the question came from.*
 
-| Metric | A1 base | A2 +RAG | A3 fine-tuned | A4 FT+RAG |
+Scored as a ladder, because a single "citation validity" number hides the result:
+
+| | A1 base | A2 +RAG | A3 fine-tuned | A4 FT+RAG |
 |---|---|---|---|---|
-| Cites a section that **exists** | 78.3% | 98.3% | 99.0% | 99.7% |
-| **Cites the CORRECT section** | 0.3% | 83.7% | **0.0%** | **88.3%** |
-| **Fabrication rate** | 78.0% | 14.7% | **99.0%** | 11.3% |
+| Named an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
+| **Named the CORRECT act** | **47.7%** | 96.0% | **90.3%** | 98.7% |
+| Cited a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
+| **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.0%** | **88.3%** |
+| Right act, wrong section | 47.3% | 12.3% | **90.3%** | 10.3% |
 | Format valid | 99.7% | 100.0% | 100.0% | 100.0% |
-| Latency p50 | 1.87s | 2.38s | 3.88s | 5.16s |
-| Mean prompt tokens | 486 | 1603 | 52 | 1139 |
+| Mean prompt tokens | 486 | 1603 | **52** | 1139 |
+| Latency p50 | 3.14s | 3.26s | **5.38s** | 6.06s |
 
-No number above needs an LLM judge. They are string matches against a finite
-registry of real acts and section numbers.
+The prompts make the routing result stronger, not weaker. A1's prompt
+**explicitly lists all four statutes** and warns against citing the repealed Acts
+they replaced — and still scores 47.7%. A3's prompt is literally `{question}`,
+52 tokens, no statute list, because that is what it was trained on. The
+fine-tuned model routes correctly **unaided**, beating a base model that was
+handed the answer list.
 
-### What the fourth cell shows
+### This is the dangerous failure mode
 
-The cell most write-ups omit is the one that carries the result. **A4 beats A2
-by +4.7%** — fine-tuning does add something, but *only* on top of
-retrieval, and modestly. Without retrieval the same adapter is actively harmful.
-A head-to-head of "fine-tuned, no retrieval" against "base + RAG" — the usual
-two-arm comparison — would have reported a 84% gap and drawn the wrong
-conclusion about why.
+271 of A3's 300 answers name the **correct statute with the wrong section**.
 
-### Fine-tuning is not free at inference
+A citation to the wrong Act is obvious to any lawyer. A citation to the right Act
+with a plausible section number has to be looked up. Fine-tuning did not reduce
+the error rate — it made the errors harder to catch.
 
-A3 is **slower** than A1 (3.88s vs 1.87s) despite a
-9× shorter prompt and fewer generated tokens. The LoRA adapter is
-attached unmerged, so every forward pass pays for the extra matmuls. Merging
-would remove this, and the reported figure should be read as the cost of the
-*unmerged* deployment rather than an inherent property of fine-tuning.
+### Fine-tuning is not free at inference, and never pays back
+
+A3 is **1.7× slower** than A1 while sending **9× fewer prompt tokens** — the
+adapter is attached unmerged, so every forward pass pays extra LoRA matmuls.
+
+That kills the usual economic argument. Fine-tuning is a one-off cost that has to
+amortise against a per-query saving, and here the fine-tuned arms are *more*
+expensive per query (5.38 and 6.45 GPU-s) than RAG (3.28). The crossover volume
+is not large — it does not exist.
+
+Measured in a GPU window verified exclusive at all six sampling points.
+Scope limit: this is an **unmerged** deployment; merging would remove most of the
+overhead, and this benchmark did not measure that.
+
+### The fourth cell, and where its gain comes from
+
+A4 beats A2 by **+4.6 points**, and the failure taxonomy says exactly why:
+
+| | A2 base+RAG | A4 FT+RAG |
+|---|---|---|
+| Retrieved source, cited correctly | 251 | 265 |
+| Retrieved source, **still wrong** | 31 | **17** |
+| Missed source, still correct | **0** | **0** |
+| Missed source, wrong | 18 | 18 |
+
+Retrieval failures are **identical** — both arms share one index — so the entire
+gain is generation: 31 → 17 errors on the same retrieved context.
+
+And **parametric recovery is zero in both arms**. Neither model ever answered
+correctly when retrieval missed, in 36 opportunities. When the index failed, the
+fine-tuned weights had nothing to add.
+
+### The null result on this benchmark's own hypothesis
+
+Parametric answerability was the stratification variable this project was
+*designed around* — the one place fine-tuning was expected to win.
+
+| Stratum | A1 | A2 | A3 | A4 |
+|---|---|---|---|---|
+| answerable (n=80) | 1.2% | 86.2% | 0.0% | 87.5% |
+| unanswerable (n=220) | 0.0% | 82.7% | 0.0% | **88.6%** |
+
+It did not separate the arms, and in the best arm the gap runs the **wrong way**.
+Reported here rather than dropped.
+
+### Forgetting was worse in-domain than out
+
+| | base | adapted | Δ |
+|---|---|---|---|
+| in-domain (professional_law, jurisprudence) | 69.0% | 63.5% | **−5.5** |
+| out-of-domain (college_biology, formal_logic) | 69.0% | 66.5% | −2.5 |
+
+The opposite of the usual framing. Adaptation degraded the domain it was adapted
+*to*, twice as much as the domains it ignored — consistent with an adapter that
+overwrote legal reasoning with legal formatting.
 
 ### Where the base model actually stands
 
-**26.7%** of gold questions are answered correctly by the base model with
-no retrieval at all — and that number is itself **overstated**. The local judge
-was measured against 100 human labels at Cohen's κ = **0.452**, and it calls
-2.7× as many answers fully correct as a human does. Human-calibrated, the true
-rate is nearer **10%**.
+**26.7%** of gold questions are answered correctly by the base model with no
+retrieval — and that number is **overstated**. The local judge was measured
+against 100 human labels at Cohen's κ = **0.452**, and calls 2.7× as many answers
+fully correct as a human does. Human-calibrated, the true rate is nearer **10%**.
 
-That κ is below the pre-registered 0.60 threshold, so **LLM-judged accuracy is
-reported as a secondary metric only** and every headline number above is
-judge-free. The rule was fixed before the measurement, not after.
+κ is below the pre-registered 0.60 threshold, so **LLM-judged accuracy is a
+secondary metric only** and every headline number above is judge-free. The rule
+was fixed before the measurement, not after.
 
-_Full evidence: [`reports/arms_comparison.md`](reports/arms_comparison.md),
-[`reports/baseline_A1.md`](reports/baseline_A1.md)._
+_Full analysis: [`docs/RESULTS.md`](docs/RESULTS.md). Evidence:
+[`reports/arms_comparison.md`](reports/arms_comparison.md),
+[`reports/failures.md`](reports/failures.md),
+[`reports/judge_agreement.md`](reports/judge_agreement.md)._
 
 ## Relationship to VidyaRAG
 
-The retrieval arms are not a reimplementation-from-scratch of "some RAG
-baseline". They mirror the frozen `baseline` profile of
-**[VidyaRAG](https://github.com/NehaBharti08/VidyaRAG)** — same corpus, same
-chunking (512/64), same `top_k` (20 → 5), same citation format — so the
-comparison is genuinely apples-to-apples rather than a strawman built to lose.
+This project began as the empirical counterpart to
+**[VidyaRAG](https://github.com/NehaBharti08/VidyaRAG)** and inherited its
+retrieval design. One inherited claim had to be **retired**, and saying so
+matters more than the claim did.
 
-`configs/retrieval.yaml` records what it mirrors and
-`tests/test_retrieval_mirror.py` fails if the two drift apart.
+**The two repos no longer share a corpus.** VidyaRAG indexes OpenStax biology;
+this project moved to Indian statutes (see below). So the retrieval arms here are
+*not* "the same pipeline on the same data" and the apples-to-apples claim that
+justification originally rested on is void. It is removed rather than quietly
+left standing.
 
-The two repos stay separate on purpose: VidyaRAG is deliberately torch-free
-(~400 MB deployable image), and this project needs torch, bitsandbytes and
-CUDA. Merging them would cost VidyaRAG the property it was designed around.
+What survives is narrower and still worth stating: the retrieval configuration
+(chunk 512 / overlap 64, `top_k` 20 → 5, dense-only, no reranker) is held fixed
+at VidyaRAG's frozen `baseline` values. Not for cross-repo comparability, which
+no longer exists, but so that **retrieval is a constant across all four arms of
+this grid** — the 2×2 isolates adaptation, and a retriever tuned per-arm would
+destroy that. `configs/retrieval.yaml` records the provenance and
+`tests/test_retrieval_mirror.py` fails if the values drift.
+
+The repos stay separate on purpose: VidyaRAG is deliberately torch-free (~400 MB
+deployable image) and this project needs torch, bitsandbytes and CUDA.
 
 ### One inherited decision that had to be changed
 
-VidyaRAG verifies that every gold question is **not** answerable from
-parametric knowledge without retrieval. For a RAG evaluation that check is
-exactly right — it is what stops the evaluation from measuring nothing.
+VidyaRAG verifies that every gold question is **not** answerable from parametric
+knowledge without retrieval. For a RAG evaluation that is exactly right — it is
+what stops the evaluation from measuring nothing.
 
 For this 2×2 it would be fatal. If every question requires retrieval *by
 construction*, the no-retrieval arms are guaranteed to fail, fine-tuning can
 never win, and the grid produces a rigged result that looks rigorous.
 
-So here, parametric answerability is a **stratification variable, not a
-filter**. Every eval item is labelled and results are reported per stratum.
-VidyaRAG's 60 questions become one stratum of a 300-item superset.
+So here, parametric answerability is a **stratification variable, not a filter**.
+Every eval item is labelled and results are reported per stratum.
+
+That correction was right, and it still **did not work** — the stratification
+separated nothing (see Results). Both halves are reported: the reasoning was
+sound, the hypothesis it enabled was wrong.
 
 ## Experimental design
 
@@ -180,8 +248,8 @@ _Evaluation and training commands land in Phases 2–4._
 
 ## Dataset (Phase 1)
 
-**3,161 QA pairs** (2,839 train / 322 val) grounded in
-335 corpus sections. Full detail in
+**3,171 QA pairs** (2,830 train / 341 val) grounded in **1,090 sections** of four
+Indian statutes. Full detail in
 [`reports/dataset_card.md`](reports/dataset_card.md); decontamination evidence in
 [`reports/decontamination.md`](reports/decontamination.md).
 
@@ -193,22 +261,23 @@ trying to establish it after the fact. All pass.
 Two things Phase 1 measured that the plan had guessed wrong:
 
 - **Token length.** Planned ~600 tokens/example and `max_seq_length` 2048;
-  measured p99 **179**, mean **112.8**. A training example is a
-  question plus a formatted answer and contains *no passage* — the no-retrieval
-  arm has to recall parametrically, so there is no long context to hold.
-  `max_seq_length` is now 512 and the training
-  budget dropped from 13.7 to **1.8 GPU-hours**.
-- **A false positive in my own decontamination check.** The first run flagged
-  420 within-train duplicates; the top matches were *"What is phagocytosis?"*
-  against *"What is chemical energy?"*. Three-token questions form no 5-gram
-  shingle, so their MinHash signatures were empty — and empty signatures are
-  identical to one another. Fixed, with regression tests. A check that cries
-  wolf is more dangerous than one that is merely absent, because its threshold
-  gets relaxed until it stops catching anything.
+  measured p99 **231**, mean **137**. A training example is a question plus a
+  formatted answer and contains *no passage* — the no-retrieval arm has to recall
+  parametrically, so there is no long context to hold. `max_seq_length` is now
+  512, and padding to 2048 would have wasted ~11× the compute for nothing.
+- **A false positive in my own decontamination check.** The first run flagged 420
+  within-train duplicates; the top matches were *"What is phagocytosis?"* against
+  *"What is chemical energy?"*. Three-token questions form no 5-gram shingle, so
+  their MinHash signatures were empty — and empty signatures are identical to one
+  another. Fixed, with regression tests. A check that cries wolf is more
+  dangerous than one that is merely absent, because its threshold gets relaxed
+  until it stops catching anything.
 
-**Known limitation, stated up front.** ~78 optimizer steps per epoch is a thin training signal, and no batch size fixes it.
-If Phase 4 shows little movement, that is the first thing to suspect — ahead of
-any conclusion about fine-tuning as a method.
+**The thin-signal limitation, and what fixed it.** Phase 1 flagged ~78 optimizer
+steps per epoch as too weak a training signal. Turning **packing off** in Phase 4
+raised that to **353 steps/epoch** — same data, roughly the same wall clock,
+3.7× more gradient updates. So "the adapter didn't have enough steps" is not
+available as an excuse for the results above.
 
 ## Environment note
 
@@ -230,16 +299,34 @@ shared, so a run can lose its slot at any time.
 
 ## Corpus & licensing
 
-Code is MIT. The textbooks are **not** — they are OpenStax titles under
-CC BY 4.0, and that license travels with every retrieved passage, generated
-citation, the derived QA dataset, and the trained adapter.
+Code is MIT. **The corpus is not**, and the basis for reusing it is narrower than
+a permissive licence — which is worth stating precisely rather than waving at.
 
-**Edition matters more than title.** Most OpenStax second editions are CC
-BY-**NC-SA**, not CC BY. Only the *first* editions of *Biology* and *Anatomy and
-Physiology* are usable here. See [ATTRIBUTION.md](ATTRIBUTION.md).
+The corpus is the bare text of four Indian statutes, retrieved from
+**[India Code](https://indiacode.gov.in)**, the Government of India's official
+repository of central legislation:
 
-> Download Biology for free at https://openstax.org/details/books/biology
-> Download Anatomy and Physiology for free at https://openstax.org/details/books/anatomy-and-physiology
+| Act | Year | Replaces |
+|---|---|---|
+| The Bharatiya Nyaya Sanhita | 2023 | The Indian Penal Code, 1860 |
+| The Bharatiya Nagarik Suraksha Sanhita | 2023 | The Code of Criminal Procedure, 1973 |
+| The Bharatiya Sakshya Adhiniyam | 2023 | The Indian Evidence Act, 1872 |
+| The Indian Contract Act | 1872 | — |
 
-This is an independent student project, not affiliated with or endorsed by
-OpenStax or Rice University.
+Reuse rests on **§52(1)(q)(ii) of the Indian Copyright Act, 1957**, which exempts
+the reproduction of bare legislative text. That is a **statutory exemption, not a
+licence** — it is narrower than CC BY, it does not carry a grant to sublicense,
+and it covers the bare text only, not commentary or headnotes. Full reasoning in
+[ATTRIBUTION.md](ATTRIBUTION.md).
+
+**Why statutes and not textbooks.** This project originally used OpenStax
+biology. The Phase 3 gate measured **75.7%** parametric answerability there — the
+base model already knew the corpus, so every cell of the 2×2 compressed toward
+ceiling and the training compute would have bought nothing. The same gate on
+statutes in force since July 2024 returned **26.7%**. The domain switch was a
+measurement, not a preference.
+
+This is an independent student project. It is not affiliated with or endorsed by
+the Government of India, and **nothing it produces is legal advice.** The
+fine-tuned model fabricates section numbers in 99% of its unaided answers; that
+is the finding, and it is also the warning.

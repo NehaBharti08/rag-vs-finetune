@@ -1,0 +1,145 @@
+{
+  "n_items": 25,
+  "repeats": 3,
+  "contention_samples": [
+    {
+      "when": "before",
+      "memory_used_mib": 76,
+      "utilization_pct": 0,
+      "other_process_mib": 0,
+      "exclusive": true
+    },
+    {
+      "when": "after_A1_base_zeroshot",
+      "memory_used_mib": 7187,
+      "utilization_pct": 44,
+      "other_process_mib": 0,
+      "exclusive": true
+    },
+    {
+      "when": "after_A2_base_rag",
+      "memory_used_mib": 7187,
+      "utilization_pct": 70,
+      "other_process_mib": 0,
+      "exclusive": true
+    },
+    {
+      "when": "after_A3_ft_zeroshot",
+      "memory_used_mib": 7281,
+      "utilization_pct": 30,
+      "other_process_mib": 0,
+      "exclusive": true
+    },
+    {
+      "when": "after_A4_ft_rag",
+      "memory_used_mib": 7291,
+      "utilization_pct": 24,
+      "other_process_mib": 0,
+      "exclusive": true
+    },
+    {
+      "when": "after",
+      "memory_used_mib": 7291,
+      "utilization_pct": 20,
+      "other_process_mib": 0,
+      "exclusive": true
+    }
+  ],
+  "contention_before": {
+    "memory_used_mib": 76,
+    "utilization_pct": 0,
+    "other_process_mib": 0,
+    "exclusive": true
+  },
+  "contention_after": {
+    "memory_used_mib": 7291,
+    "utilization_pct": 20,
+    "other_process_mib": 0,
+    "exclusive": true
+  },
+  "peak_other_process_mib": 0,
+  "window_was_exclusive": true,
+  "arms": {
+    "A1_base_zeroshot": {
+      "n": 75,
+      "p50_seconds": 3.1439,
+      "p95_seconds": 3.7304,
+      "mean_seconds": 3.1097,
+      "min_seconds": 2.295,
+      "max_seconds": 3.9471,
+      "gpu_seconds_per_query": 3.1097,
+      "usd_per_1k_queries": 0.311,
+      "usd_per_gpu_hour_assumed": 0.36,
+      "mean_prompt_tokens": 486.6,
+      "mean_completion_tokens": 96.5,
+      "contention": {
+        "memory_used_mib": 76,
+        "utilization_pct": 0,
+        "other_process_mib": 0,
+        "exclusive": true
+      },
+      "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+    },
+    "A2_base_rag": {
+      "n": 75,
+      "p50_seconds": 3.2585,
+      "p95_seconds": 4.6773,
+      "mean_seconds": 3.2765,
+      "min_seconds": 2.1641,
+      "max_seconds": 6.0149,
+      "gpu_seconds_per_query": 3.2765,
+      "usd_per_1k_queries": 0.3277,
+      "usd_per_gpu_hour_assumed": 0.36,
+      "mean_prompt_tokens": 1639.9,
+      "mean_completion_tokens": 110.4,
+      "contention": {
+        "memory_used_mib": 76,
+        "utilization_pct": 0,
+        "other_process_mib": 0,
+        "exclusive": true
+      },
+      "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+    },
+    "A3_ft_zeroshot": {
+      "n": 75,
+      "p50_seconds": 5.379,
+      "p95_seconds": 7.2247,
+      "mean_seconds": 5.3781,
+      "min_seconds": 3.2048,
+      "max_seconds": 8.6398,
+      "gpu_seconds_per_query": 5.3781,
+      "usd_per_1k_queries": 0.5378,
+      "usd_per_gpu_hour_assumed": 0.36,
+      "mean_prompt_tokens": 53.6,
+      "mean_completion_tokens": 90.8,
+      "contention": {
+        "memory_used_mib": 76,
+        "utilization_pct": 0,
+        "other_process_mib": 0,
+        "exclusive": true
+      },
+      "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+    },
+    "A4_ft_rag": {
+      "n": 75,
+      "p50_seconds": 6.0588,
+      "p95_seconds": 9.9532,
+      "mean_seconds": 6.4484,
+      "min_seconds": 3.6803,
+      "max_seconds": 10.6003,
+      "gpu_seconds_per_query": 6.4484,
+      "usd_per_1k_queries": 0.6448,
+      "usd_per_gpu_hour_assumed": 0.36,
+      "mean_prompt_tokens": 1175.9,
+      "mean_completion_tokens": 124.7,
+      "contention": {
+        "memory_used_mib": 76,
+        "utilization_pct": 0,
+        "other_process_mib": 0,
+        "exclusive": true
+      },
+      "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+    }
+  },
+  "note": "Contention is sampled at every arm boundary and counts only memory held by OTHER processes. An earlier version compared TOTAL GPU memory against the threshold, so once the 7B model was resident it reported exclusive=False no matter who else was on the card - it was measuring itself, and the first run of this pass was scored against that broken check. The latencies in the main arm runs have a different and unrelated flaw: they sampled contention at REPORT time rather than during measurement, so their flag describes the wrong moment. These supersede them."
+}
