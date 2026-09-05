@@ -319,6 +319,28 @@ There is no SLURM on the target machine, so long jobs run under tmux via
 `scripts/run.sh` and every runner resumes from its own checkpoints — the GPU is
 shared, so a run can lose its slot at any time.
 
+## Try it
+
+```bash
+uv run python demo.py --list-failures    # no GPU needed — reads the eval logs
+```
+
+Prints real failures from the committed logs: the question, the gold section,
+and what the fine-tuned model cited instead. It is the fastest way to see the
+central finding rather than read a table about it.
+
+With a GPU, ask anything and watch all four arms answer side by side, each
+citation mechanically checked against the corpus:
+
+```bash
+uv run python demo.py "What punishment does the law prescribe for murder?"
+uv run python demo.py --interactive
+```
+
+**No hosted Space, deliberately.** A free HF Space gets a CPU and 16 GB of RAM
+and cannot serve a 4-bit 7B. One that quietly fell back to a smaller model would
+demo something this project never measured.
+
 ## What this does not establish
 
 Stated here rather than left for a reader to discover:
