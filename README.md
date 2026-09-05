@@ -234,17 +234,39 @@ make check            # lint + types + fast tests
 `make smoke` writes [`reports/env_matrix.md`](reports/env_matrix.md). Every
 GPU-hour estimate in this project is calibrated from it rather than assumed.
 
+Then reproduce everything:
+
 ```bash
-uv run python -m ragft.corpus.download      # licence-verified, fails closed
-uv run python -m ragft.corpus.parse         # 375 sections
-uv run python -m ragft.corpus.split         # seeded, BEFORE generation
-uv run python -m ragft.dataset.generate     # ~5h local, $0
-uv run python -m ragft.dataset.filter
-uv run python -m ragft.dataset.decontaminate
-uv run python -m ragft.dataset.stats
+./scripts/reproduce_all.sh            # ~10h wall clock, ~4h of it GPU
+./scripts/reproduce_all.sh --from 3   # resume from any phase
 ```
 
-_Evaluation and training commands land in Phases 2–4._
+Every phase is idempotent and separately runnable, because they have very
+different costs and failure modes:
+
+| | Phase | Cost |
+|---|---|---|
+| `scripts/01_dataset.sh` | corpus → QA, split before generation | ~5h CPU (local Ollama, $0) |
+| `scripts/02_build_index.sh` | embed + index | ~20 min CPU |
+| `scripts/03_baselines.sh` | A1, A2 + the go/no-go gate | ~40 min GPU |
+| `scripts/04_train.sh` | QLoRA | ~45 min GPU |
+| `scripts/05_full_grid.sh` | A3, A4 | ~40 min GPU |
+| `scripts/06_analysis.sh` | forgetting, latency, frontier | ~40 min GPU |
+
+The GPU here is shared, so long jobs go through `scripts/run.sh <name> <cmd>`,
+which detaches into tmux with a timestamped log and records the GPU state at
+launch. Every runner resumes from its own checkpoints.
+
+Two human-in-the-loop steps cannot be automated and have their own CLI:
+
+```bash
+uv run python -m ragft.eval.label verify   # check gold candidates
+uv run python -m ragft.eval.label judge    # grade responses, for Cohen's kappa
+uv run python -m ragft.eval.label write    # author the unanswerable stratum
+```
+
+The last one is why abstention is currently unmeasured — see
+[Limitations](#what-this-does-not-establish).
 
 ## Dataset (Phase 1)
 
@@ -296,6 +318,23 @@ rather than by reading changelogs.
 There is no SLURM on the target machine, so long jobs run under tmux via
 `scripts/run.sh` and every runner resumes from its own checkpoints — the GPU is
 shared, so a run can lose its slot at any time.
+
+## What this does not establish
+
+Stated here rather than left for a reader to discover:
+
+- **Single seed** (42). No variance estimate, so a few points of difference —
+  including A4's +4.6 over A2 — is not established.
+- **Abstention is unmeasured.** The frozen eval set contains no unanswerable
+  questions, so refusal behaviour is unknown. Reported as absent, not estimated.
+- **One hyperparameter configuration.** No sweep, so "QLoRA fails at this" is
+  really "this QLoRA configuration failed at this".
+- **A public corpus.** Indian statutes are public text; results may not transfer
+  to a private domain, which is the case fine-tuning is usually argued for.
+
+Full list in [docs/RESULTS.md](docs/RESULTS.md) §9. The adapter's own
+limitations are in [MODEL_CARD.md](MODEL_CARD.md), which leads with why you
+should not use it to answer legal questions.
 
 ## Corpus & licensing
 
