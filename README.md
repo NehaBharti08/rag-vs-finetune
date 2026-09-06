@@ -279,6 +279,11 @@ Then reproduce everything:
 ./scripts/reproduce_all.sh --from 3   # resume from any phase
 ```
 
+> **Not verified end to end.** Every phase has been run individually and the
+> numbers in `reports/` come from those runs, but the full chain has not been
+> executed in one pass from a clean checkout — regenerating the QA set alone is
+> ~5 hours. Treat it as the documented pipeline, not a tested artifact.
+
 Every phase is idempotent and separately runnable, because they have very
 different costs and failure modes:
 

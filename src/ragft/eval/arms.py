@@ -105,11 +105,19 @@ class ArmRunner:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        bnb = BitsAndBytesConfig(
-            load_in_4bit=self.quant.load_in_4bit,
-            bnb_4bit_quant_type=self.quant.quant_type,
-            bnb_4bit_compute_dtype=getattr(torch, self.quant.compute_dtype),
-            bnb_4bit_use_double_quant=self.quant.double_quant,
+        # load_in_4bit=False is used ONLY by the bf16 reference arm
+        # (ragft.eval.run_bf16_reference), never by a cell of the 2x2. Passing a
+        # BitsAndBytesConfig with load_in_4bit False would still route through
+        # bitsandbytes, so the config is omitted entirely instead.
+        bnb = (
+            BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type=self.quant.quant_type,
+                bnb_4bit_compute_dtype=getattr(torch, self.quant.compute_dtype),
+                bnb_4bit_use_double_quant=self.quant.double_quant,
+            )
+            if self.quant.load_in_4bit
+            else None
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             BASE_MODEL, quantization_config=bnb, dtype=torch.bfloat16, device_map={"": 0}
