@@ -214,6 +214,24 @@ def write_unanswerable() -> None:
             print(f"  {YELLOW}give a real reason -- it is the audit trail{RESET}\n")
             continue
 
+        # CONFIRM the category rather than assuming the offered one was used.
+        #
+        # The first version recorded whichever kind it had *offered*, on the
+        # assumption that a writer answers the prompt in front of them. In
+        # practice the first 60-item set was written in the author's own order,
+        # cycling through all five types, and 48 of 60 ended up mislabelled --
+        # a balanced set with scrambled labels, which silently makes the
+        # by-kind breakdown meaningless. Ask; never infer.
+        print(f"  {DIM}which kind is this really?{RESET}")
+        for n, (k, d, _) in enumerate(UNANSWERABLE_KINDS, 1):
+            mark = " <- offered" if k == kind else ""
+            print(f"    {n}. {k:22s} {DIM}{d}{mark}{RESET}")
+        choice = _read_line(f"  kind [1-{len(UNANSWERABLE_KINDS)}, Enter = {kind}]> ")
+        if choice.lower() in {"q", "quit"}:
+            break
+        if choice.isdigit() and 1 <= int(choice) <= len(UNANSWERABLE_KINDS):
+            kind = UNANSWERABLE_KINDS[int(choice) - 1][0]
+
         record: dict[str, Any] = {
             "gold_id": _gold_id_for(question),
             "question": question,

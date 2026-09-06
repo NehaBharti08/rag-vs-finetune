@@ -1,0 +1,7 @@
+{
+  "frozen": true,
+  "file": "data/eval/gold_unanswerable.jsonl",
+  "digest": "9a1d50725993ca0158102471660f78b36249ea50b259f88b66f629b9362a140e",
+  "n_items": 60,
+  "note": "Frozen SEPARATELY from configs/eval/frozen.lock, deliberately. The main gold set was frozen over 300 answerable items before A3/A4 ran; adding these would change its digest and invalidate every result measured against it. Abstention is scored by a different metric that shares no machinery with the citation ladder, so it is cleanly a separate evaluation. Hand-written by the author; an LLM asked for unanswerable questions produces obviously out-of-domain ones and abstention looks easy."
+}
