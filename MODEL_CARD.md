@@ -3,6 +3,9 @@
 A LoRA adapter over `Qwen/Qwen2.5-7B-Instruct`, trained on synthetic
 question–answer pairs derived from four Indian statutes.
 
+**Hub:** [`nehabharti0802/rag-vs-finetune-legal-qlora`](https://huggingface.co/nehabharti0802/rag-vs-finetune-legal-qlora) · **Code:**
+[github.com/NehaBharti08/rag-vs-finetune](https://github.com/NehaBharti08/rag-vs-finetune)
+
 **This adapter was trained to be measured, not to be deployed.** It is the
 experimental artifact of a 2×2 benchmark comparing retrieval against
 fine-tuning. It is published so the benchmark is reproducible. Read the
