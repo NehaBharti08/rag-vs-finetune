@@ -261,12 +261,82 @@ buried.
    recorded in [THREATS_TO_VALIDITY.md](THREATS_TO_VALIDITY.md): latency
    contention sampled at the wrong time, and an exclusivity check that was
    detecting its own model.
-7. **The variance run deleted one of my own headlines.** "Fine-tuning alone
+7. **Fine-tuning destroyed abstention** (§10), despite 10% of the training data
+   being refusal examples put there to prevent exactly that. I expected
+   retrieval to dominate this measurement; it does not. Fine-tuning's effect is
+   ~3× larger and runs the other way.
+8. **The variance run deleted one of my own headlines.** "Fine-tuning alone
    scores 0.0%, below the untuned base model" read well and was a single-seed
    artifact. Across three seeds it is 0.9% ± 1.0, which contains the base
    model's 0.3%. The finding is now weaker and correct: indistinguishable, not
    worse. The same run left the act-routing result essentially untouched, which
    is what makes the contrast informative rather than merely deflating.
+
+## 10. Fine-tuning destroyed the ability to refuse
+
+Measured on 60 hand-written unanswerable questions, frozen separately from the
+main gold set, plus 60 answerable controls so false-abstention is defined. A
+model that refuses everything scores perfect recall, which is why all three
+numbers are reported together.
+
+| Arm | Refused | Recall | Precision | False abstention |
+|---|---|---|---|---|
+| A1 base | 25/60 | **41.7%** | 92.6% | 3.3% |
+| A2 base + RAG | 31/60 | **51.7%** | 100% | 0% |
+| A3 fine-tuned | 9/60 | **15.0%** | 100% | 0% |
+| A4 FT + RAG | 10/60 | **16.7%** | 100% | 0% |
+
+**Fine-tuning cut refusal by roughly 3×** — 41.7% → 15.0% without retrieval,
+51.7% → 16.7% with it. Retrieval helps modestly (+10 points); fine-tuning hurts
+about three times as much in the other direction.
+
+### The objection this pre-empts
+
+The training set contained **317 unanswerable→refusal examples**, 10% of the
+data, included deliberately. The plan called the decision load-bearing: *without
+refusal training, the fine-tuned arm's hallucination rate measures the training
+data's omission rather than the method.*
+
+That defense held, and the result is worse for fine-tuning because of it. The
+model **was** trained to refuse, on a tenth of its examples, and still became 3×
+less willing to. "You just didn't teach it to refuse" is ruled out by
+construction.
+
+This is the mechanism behind the 96.9% ± 2.0 fabrication rate, measured rather
+than inferred: the adapter did not merely fail to learn section numbers, it
+learned to always produce one.
+
+### By question type — where the taxonomy pays for itself
+
+| Kind | A1 | A2 | A3 | A4 |
+|---|---|---|---|---|
+| beyond_the_text | 82% | 73% | 18% | 36% |
+| out_of_corpus_act | 62% | **92%** | 8% | 31% |
+| repealed_law | 58% | 42% | 8% | **0%** |
+| false_presupposition | 8% | 50% | 8% | 8% |
+| underspecified | **0%** | **0%** | 33% | 8% |
+
+Two failures are invisible in the aggregate.
+
+**Neither base arm ever refuses an underspecified question — 0/12 in both.**
+Asked "what is the maximum punishment under the Bharatiya Nyaya Sanhita?" with no
+offence named, the base model invents a specific answer every time. This is the
+only category where fine-tuning *helped* (0% → 33%), presumably because the
+refusal training examples skewed toward vagueness.
+
+**A4 never refuses a repealed-law question — 0/12.** Asked about IPC §302 or
+CrPC §144, the fine-tuned + retrieval arm answers every single time. For a system
+whose corpus exists *precisely because* those statutes were replaced in 2024,
+this is the most consequential cell in the table: the questions a real user is
+most likely to ask from memory are the ones it is least likely to decline.
+
+### Precision is not the problem
+
+Every arm except A1 has 100% abstention precision and 0% false abstention: when
+these models refuse, they are right, and they never wrongly refuse an answerable
+question. The failure is entirely one of *under*-refusal. That matters for the
+fix — the models are not confused about what they cannot answer, they are
+unwilling to say so.
 
 ## 9. What this does not establish
 

@@ -14,6 +14,9 @@ limitations before doing anything else with it.
 
 Used on its own, without retrieval, this adapter:
 
+- refuses only **15.0%** of unanswerable questions, against the base model's
+  41.7% — fine-tuning made it **3× less willing to say "I don't know"**
+
 - cites the **correct statutory section 0.9% ± 1.0** of the time
   (n = 300 × 3 seeds)
 - cites a **real but wrong section in 96.9% ± 2.0** of its answers
@@ -125,9 +128,11 @@ Merging would likely remove most of this; that was not measured.
 - **Three seeds** (1, 2, 42), reported as mean ± std. Enough to establish that
   A4's gain over base+RAG is larger than the seed noise; not enough for a
   significance test.
-- **Abstention unmeasured.** The evaluation set contains no unanswerable
-  questions, so the model's refusal behaviour is unknown. Given a 99%
-  fabrication rate, assume it is poor.
+- **Abstention is actively bad, and measured.** On 60 hand-written unanswerable
+  questions it refuses **15.0%** of the time against the base model's 41.7% — a
+  3× regression, despite 10% of its training data being refusal examples. It
+  refuses **0/12** questions about repealed statutes (IPC/CrPC/Evidence Act),
+  which are the ones a real user is most likely to ask.
 - **One hyperparameter configuration.** No sweep was run, so "QLoRA fails at
   this" is really "this QLoRA configuration failed at this".
 - **Public corpus.** Indian statutes are public text. These results may not

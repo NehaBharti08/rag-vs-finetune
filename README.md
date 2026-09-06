@@ -127,6 +127,32 @@ And **parametric recovery is zero in both arms**. Neither model ever answered
 correctly when retrieval missed, in 36 opportunities. When the index failed, the
 fine-tuned weights had nothing to add.
 
+### Fine-tuning destroyed the ability to refuse
+
+| Arm | Refused | Recall | Precision |
+|---|---|---|---|
+| A1 base | 25/60 | **41.7%** | 92.6% |
+| A2 base + RAG | 31/60 | **51.7%** | 100% |
+| A3 fine-tuned | 9/60 | **15.0%** | 100% |
+| A4 FT + RAG | 10/60 | **16.7%** | 100% |
+
+Measured on 60 hand-written unanswerable questions plus 60 answerable controls.
+
+**Fine-tuning cut refusal by ~3×**, and the training set contained **317
+refusal examples** — 10% of the data — put there specifically to prevent this.
+It did not. "You just didn't teach it to refuse" is ruled out by construction,
+which makes this the mechanism behind the 96.9% fabrication rate rather than a
+guess at it.
+
+Worst cell in the table: **A4 refuses 0/12 repealed-law questions.** Asked about
+IPC §302, the fine-tuned+RAG model answers every time — and the corpus exists
+*because* the IPC was replaced in 2024. The questions a real user is most likely
+to ask from memory are the ones it is least likely to decline.
+
+Every arm but A1 has 100% abstention precision and 0% false abstention. These
+models are not confused about what they cannot answer; they are unwilling to say
+so.
+
 ### The null result on this benchmark's own hypothesis
 
 Parametric answerability was the stratification variable this project was
@@ -361,8 +387,8 @@ Stated here rather than left for a reader to discover:
   on every seed, which is the strongest claim three runs can carry — no more.
   The variance run also **killed** a headline: "0.0%, below the base model" was
   a single-seed artifact. See [`reports/seeds.md`](reports/seeds.md).
-- **Abstention is unmeasured.** The frozen eval set contains no unanswerable
-  questions, so refusal behaviour is unknown. Reported as absent, not estimated.
+- **Abstention rests on 60 items and one seed.** Enough to show a 3× effect;
+  not enough to put a tight interval on it.
 - **One hyperparameter configuration.** No sweep, so "QLoRA fails at this" is
   really "this QLoRA configuration failed at this".
 - **A public corpus.** Indian statutes are public text; results may not transfer
