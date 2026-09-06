@@ -71,6 +71,11 @@ gradient_accumulation_steps: 4
 # is no long context to hold. Padding to 2048 would have wasted ~11x the
 # compute for nothing.
 max_seq_length: 512
+
+# NOTE: ragft.train.sft deliberately overrides this to false, and says why.
+# Packing trades optimizer steps for compute efficiency. On this dataset the
+# binding constraint is signal, not compute: packed gives ~95 steps/epoch,
+# unpacked ~353 for the same data and roughly the same wall clock.
 packing: true
 
 # ~30% slower, but it creates the VRAM headroom that keeps a run alive when

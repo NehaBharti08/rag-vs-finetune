@@ -15,17 +15,17 @@ recall@5 >= 0.8: retrieval is adequate, so RAG-arm failures are attributable to 
 
 | k | recall@k |
 |---|---|
-| 1 | 0.576 |
-| 3 | 0.755 |
-| **5** (the context budget) | **0.817** |
-| 10 | 0.881 |
-| 20 (the candidate pool) | 0.917 |
+| 1 | 0.655 |
+| 3 | 0.783 |
+| **5** (the context budget) | **0.811** |
+| 10 | 0.865 |
+| 20 (the candidate pool) | 0.893 |
 
-Measured on 278 single-source val questions. Every QA pair records
+Measured on 281 single-source val questions. Every QA pair records
 the section it was generated from, which is ground truth for "did retrieval find
-the right place?". 44 multi-hop pairs were excluded because
+the right place?". 60 multi-hop pairs were excluded because
 they cite two sections and "the right place" is ambiguous for them — reported
-rather than silently dropped. 23 questions never surfaced their
+rather than silently dropped. 30 questions never surfaced their
 source section in the top 20.
 
 ## The embedder was chosen on this measurement
@@ -56,8 +56,8 @@ retrieval component with no upstream value to preserve.
 
 | | |
 |---|---|
-| Chunks | 3,047 |
-| Embedding | `BAAI/bge-base-en-v1.5` (768-dim) |
+| Chunks | 1,354 |
+| Embedding | `BAAI/bge-large-en-v1.5` (1024-dim) |
 | Chunking | 512/64 (mirrors VidyaRAG) |
 | Store | Qdrant embedded |
 

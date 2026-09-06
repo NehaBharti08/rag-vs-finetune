@@ -1,39 +1,27 @@
 # ===========================================================================
-# MIRRORED FROM VidyaRAG — DO NOT TUNE THESE INDEPENDENTLY
+# RETRIEVAL CONFIGURATION - HELD FIXED ACROSS DOMAINS
 #
-# Source: https://github.com/NehaBharti08/VidyaRAG
-#   config/default.yaml  +  config/profiles/baseline.yaml
+# These values were originally mirrored from VidyaRAG's frozen `baseline`
+# profile, so that this benchmark's RAG arm was the same pipeline as the
+# author's RAG project. THAT JUSTIFICATION IS NO LONGER LIVE: VidyaRAG indexes
+# OpenStax biology and this corpus is Indian statutes, so the apples-to-apples
+# claim it supported does not apply.
 #
-# These values are NOT chosen here. They are copied from VidyaRAG's frozen
-# `baseline` profile so that the retrieval arms of the two projects are the
-# same pipeline rather than a lookalike. That identity is the entire
-# apples-to-apples claim of this benchmark.
-#
-# VidyaRAG marks that profile:
-#     "FROZEN ... This profile is the control group for every measurement in
-#      this project. Once Phase 2 ships, DO NOT EDIT IT."
-# which is exactly what a 2x2 needs from its retrieval arm.
-#
-# tests/test_retrieval_mirror.py asserts these still match upstream. If
-# VidyaRAG changes its baseline, that test fails loudly instead of this
-# comparison silently drifting.
+# They remain pinned for a different reason that still holds: retrieval must be
+# constant so the legal and biology runs of this benchmark can be compared to
+# each other. tests/test_retrieval_config.py hard-codes these values, so a
+# silent change fails loudly instead of quietly making two domains
+# incomparable.
 # ===========================================================================
 
-upstream_repo: NehaBharti08/VidyaRAG
-upstream_profile: baseline
-# Populated by scripts/sync_upstream.sh once the mirror is verified against a
-# specific commit. Null means "not yet pinned", which the test reports.
-upstream_commit: null
-
 # --- Chunking ---------------------------------------------------------------
-# VidyaRAG's rationale, preserved verbatim because it is the justification this
-# project inherits:
-#   512 tokens is roughly 1.5 paragraphs of textbook prose: large enough to
-#   hold a self-contained concept, small enough that a 5-chunk context stays
-#   near 2.6k tokens and leaves ample room for generation.
-#   Trade-off: 256 raises precision but fragments multi-sentence definitions;
-#   1024 improves recall on long explanations but dilutes the embedding and
-#   raises per-query cost.
+# 512 tokens with 64 overlap, carried over unchanged from the biology run.
+#
+# On statutes the parameter barely bites: the median section is ~550 characters
+# against ~13,000 for a textbook section, so most sections fall inside a single
+# chunk and chunk, section and citation unit coincide. That removes the usual
+# RAG failure of retrieving half a provision - a real gain, but an accident of
+# the corpus rather than a tuned choice.
 chunking:
   chunk_size: 512
   chunk_overlap: 64

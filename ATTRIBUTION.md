@@ -1,96 +1,96 @@
 # Corpus Attribution & Licensing
 
-This project trains on and retrieves from openly licensed textbooks published
-by **OpenStax**, a nonprofit educational initiative of Rice University.
+This project indexes and trains on the text of Indian statutes, retrieved from
+**[India Code](https://indiacode.gov.in)**, the Government of India's official
+repository of central legislation, maintained by the Legislative Department,
+Ministry of Law and Justice.
 
-The source code is MIT licensed (see [LICENSE](LICENSE)). **The corpus is not**,
-and neither are the artifacts derived from it. Textbook content — passages
-returned by retrieval, quoted in citations, paraphrased in generated answers,
-rewritten into synthetic training pairs, or absorbed into adapter weights —
-remains under the Creative Commons license below, and the attribution
-requirement travels with it.
-
-Corpus selection and licensing follow
-[VidyaRAG's ATTRIBUTION.md](https://github.com/NehaBharti08/VidyaRAG/blob/main/ATTRIBUTION.md),
-because using the same corpus is what makes the two projects comparable.
+The source code is MIT licensed (see [LICENSE](LICENSE)). **The corpus is not
+MIT**, and the basis on which it is reused is materially different from the
+CC BY textbook corpus this project previously used. That difference is set out
+below rather than glossed over.
 
 ---
 
-## Indexed titles
+## Indexed statutes
 
-| Title | Edition | Published | License | Source |
-|---|---|---|---|---|
-| Biology | 1st | 2016-10-21 | **CC BY 4.0** | https://openstax.org/details/books/biology |
-| Anatomy and Physiology | 1st | 2013-04-25 | **CC BY 4.0** | https://openstax.org/details/books/anatomy-and-physiology |
+| Act | Year | Sections ingested | Replaces |
+|---|---|---|---|
+| The Bharatiya Nyaya Sanhita | 2023 | 355 | The Indian Penal Code, 1860 |
+| The Bharatiya Nagarik Suraksha Sanhita | 2023 | 523 | The Code of Criminal Procedure, 1973 |
+| The Bharatiya Sakshya Adhiniyam | 2023 | 161 | The Indian Evidence Act, 1872 |
+| The Indian Contract Act | 1872 | 198 | — |
 
-Print ISBNs: Biology `978-1-938168-09-3` · Anatomy and Physiology `978-1-938168-13-0`.
-OpenStax book UUIDs: `185cbf87-c72e-48f5-b51e-f14f21b5eabd` · `14fb4ad7-39a1-4eee-ab6e-3ef2482e3e22`.
+**1,237 sections.** Repealed sections are excluded at ingest: a repealed
+provision has no correct current answer, so a question grounded in one would be
+scored against text that no longer states the law.
 
-### ⚠️ Edition matters more than title
+## ⚠️ The licensing basis is statutory, not a publisher's grant
 
-**Most OpenStax second editions are _not_ CC BY.** OpenStax relicensed much of
-its catalog to CC BY-NC-SA 4.0, and the change is invisible from the title
-alone:
+The previous corpus (OpenStax) published a machine-readable licence field, so
+ingestion could fail closed by *asking the publisher* whether the content was
+CC BY 4.0.
 
-| Title | License |
+**India Code publishes no such field.** Every terms, about and end-user-agreement
+route returns the same client-side application shell. The basis for reuse is
+therefore a provision of Indian law rather than a licence:
+
+> **Indian Copyright Act, 1957, s.52(1)(q)(ii)** — the reproduction or
+> publication of *any Act of a Legislature* does not constitute an infringement
+> of copyright, provided it is reproduced or published together with any
+> commentary thereon or other original matter.
+
+Bare statutory text is therefore freely reproducible. This is settled and
+uncontroversial, but it is **an assertion of a legal position rather than a
+verified licence**, and it is a weaker guarantee than the corpus it replaced.
+Anyone relying on this repository should satisfy themselves independently.
+
+### What ingestion still enforces
+
+The exemption turns on the material being *bare legislative text*. That
+condition is machine-checkable and is enforced, failing closed:
+
+| Condition | Enforced in |
 |---|---|
-| Biology **1st ed** | CC BY 4.0 ✅ |
-| Biology **2e** | CC BY-**NC-SA** 4.0 ❌ |
-| Anatomy and Physiology **1st ed** | CC BY 4.0 ✅ |
-| Anatomy and Physiology **2e** | CC BY-**NC-SA** 4.0 ❌ |
-| Microbiology | CC BY-**NC-SA** 4.0 ❌ |
-| Concepts of Biology | CC BY-**NC-SA** 4.0 ❌ |
+| Item is a `SECTION`-collection item — statutory text, not commentary | `ragft.corpus.download` |
+| `dc.title.act_name` matches a pinned title **exactly** | `ragft.corpus.download` |
+| Section count within 80% of expected, else abort | `ragft.corpus.download` |
 
-NonCommercial and ShareAlike terms would restrict downstream reuse of an
-MIT-licensed repository — and, here, of a publicly published adapter. **Any
-title added later must have its license checked individually, by edition,
-against the OpenStax content API — not assumed from a sibling edition and not
-taken from a search result.**
+The exact-title check is not pedantry. The India Code search is a fuzzy phrase
+match and will happily return *The Indian Contract (Amendment) Act, 1996*
+alongside the principal Act; trusting the query would silently mix amending
+statutes into the corpus.
 
-Verification is re-run at ingest time by `ragft.corpus.download`:
-
-```
-curl "https://openstax.org/apps/cms/api/v2/pages/?type=books.Book&fields=*&slug=biology"
-```
-
-Both titles must return `license_name: Creative Commons Attribution License`,
-`license_version: 4.0`. Ingest fails closed if they do not.
-
----
+Administering ministry is recorded but **not** gated on. An earlier version
+required the Legislative Department and rejected all 358 sections of the
+Bharatiya Nyaya Sanhita, because criminal law is administered by the Ministry of
+Home Affairs. Which ministry administers a statute has no bearing on whether its
+text is bare legislative text.
 
 ## Attribution obligations, and where they land
 
-CC BY requires credit on redistribution. This project redistributes the corpus
-in more forms than a typical RAG app does, so the obligation shows up in more
-places:
-
 | Artifact | How attribution is satisfied |
 |---|---|
-| This file | Canonical, machine-readable record of titles, editions, and licenses |
-| Every retrieved chunk | Carries `book_title`, `license`, `source_url` in its payload, so attribution survives retrieval instead of being bolted on at the UI layer |
-| Every generated answer | Renders citations as `Biology, §7.3, p.214 (OpenStax, CC BY 4.0)` |
-| **The synthetic QA dataset** | Derived from CC BY content. Its Hugging Face dataset card must credit OpenStax and name both titles and editions |
-| **The published LoRA adapter** | *Trained on* that derivative. Its model card's training-data provenance section is a licensing requirement, not merely good practice |
+| This file | Canonical record of statutes, years, and the reuse basis |
+| Every retrieved chunk | Carries `act_name`, `licence_basis` and `source_url` in its payload, so provenance survives retrieval |
+| Every generated answer | Renders a citation as `The Bharatiya Nyaya Sanhita, 2023, §103` |
+| The synthetic QA dataset | Derived from statutory text; its dataset card names India Code as the source |
+| The published LoRA adapter | *Trained on* that derivative; its model card records the same provenance |
 
-The last two are easy to forget, because a model card reads like documentation
-rather than compliance. It is both.
+## Not legal advice
 
----
+This is a machine-learning benchmark that measures whether a language model can
+state and correctly cite statutory provisions. **Nothing it produces is legal
+advice.** Generated answers are model output and may be wrong, may cite
+provisions that do not exist, and may cite statutes repealed in 2023 — measuring
+exactly that failure is the point of the benchmark, not an incidental risk.
+
+The 2023 recodification is recent and subject to amendment and judicial
+interpretation. For any real question, consult the current authoritative text
+and a qualified advocate.
 
 ## Ingestion provenance
 
-Raw PDFs are **not committed**. They are fetched and verified by
-`ragft.corpus.download`, which records SHA-256 checksums, source URLs,
-retrieval timestamps, and page counts to `data/raw/manifest.json` so any ingest
-run is reproducible and auditable.
-
-Checksums and page counts are populated by the Phase 1 ingestion run.
-
----
-
-## Disclaimer
-
-This is an independent student project. It is **not affiliated with, endorsed
-by, or sponsored by OpenStax or Rice University.** Generated answers are
-produced by a language model and may be incorrect; they are not a substitute
-for the source textbooks.
+Raw records are **not committed**. They are fetched by `ragft.corpus.download`,
+which records per-act section counts, expected counts, repealed counts and fetch
+timestamps to `data/raw/manifest.json` so any ingest run is auditable.

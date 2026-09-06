@@ -32,6 +32,7 @@ import argparse
 import json
 import random
 import re
+from collections import Counter
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -49,6 +50,26 @@ GOLD_SEED = 20260808
 # A third family: not Qwen (the student), not gemma (the training generator).
 GOLD_GENERATOR = "llama3:8b"
 
+
+# Demonstrative reference to text the model will never see at inference.
+#
+# Widened after 20% of a generated gold set leaked. The prompts were rewritten
+# for statutes and speak of "provisions", but this filter still screened only
+# the biology vocabulary ("passage", "text", "excerpt") and caught 0 of 60.
+#
+# Naming a statute is NOT leakage - "Under the Bharatiya Nyaya Sanhita, what
+# punishment applies to murder?" is perfectly self-contained. Only pointing at
+# unseen text is.
+LEAKED_REFERENCE = re.compile(
+    r"""(?ix)
+      \b(?:the|this|that|said)\s+
+        (?:provision|section|sub-?section|clause|illustration|excerpt|passage|text|paragraph)\b
+    | \baccording\ to\ the\b
+    | \bas\ (?:set\ out|stated|provided|mentioned|described)\ (?:above|below|herein)\b
+    | \bprovision\s*\([a-z]\)
+    """
+)
+
 TARGET_EVAL_UNSEEN = 240
 TARGET_TRAIN_SEEN = 60
 PER_SECTION = 3
@@ -62,7 +83,7 @@ class GoldItem:
     stratum: str
     source_section_ids: list[str]
     source_chunk_sha256: list[str]
-    book_slug: str
+    act_slug: str
     citation: str
     generator_model: str
     unanswerable: bool = False
@@ -125,7 +146,7 @@ def _generate_one(
 ) -> None:
     prompt = template.format(
         n=PER_SECTION,
-        book=section.book_title,
+        act=section.act_name,
         label=section.label,
         title=section.title,
         passage=passage,
@@ -138,9 +159,10 @@ def _generate_one(
         reference = str(entry.get("reference", "")).strip()
         if not question or not reference or not question.endswith("?"):
             continue
-        # Same leakage rule as the training set: an eval question that
-        # mentions the passage is unanswerable without one.
-        if re.search(r"(?i)\b(?:the|this)\s+(?:passage|text|excerpt)\b", question):
+        # A question pointing at text the model never sees is unanswerable
+        # as posed, for EVERY arm - it would depress all four cells equally
+        # while looking like a model failure rather than a bad question.
+        if LEAKED_REFERENCE.search(question):
             continue
         gold_id = _gold_id(question)
         if gold_id in seen_ids:
@@ -154,7 +176,7 @@ def _generate_one(
                 stratum=stratum,
                 source_section_ids=[section.section_id],
                 source_chunk_sha256=[chunk_sha256(passage)],
-                book_slug=section.book_slug,
+                act_slug=section.act_slug,
                 citation=section.citation,
                 generator_model=client.model,
             )
@@ -220,9 +242,67 @@ def load_candidates() -> list[GoldItem]:
         return [GoldItem(**json.loads(line)) for line in fh if line.strip()]
 
 
+def finalize() -> dict[str, Any]:
+    """Promote human-verified candidates to the frozen gold set.
+
+    Only items a human marked `keep` survive. Items marked `drop` are excluded
+    and `flag` items are excluded too -- a flagged item is one the reviewer was
+    unsure about, and an uncertain item in an evaluation set is worse than a
+    missing one.
+
+    The unanswerable stratum is NOT synthesised here. It has to be hand-written,
+    because an LLM asked for unanswerable questions produces obviously
+    out-of-domain ones that make abstention look easy. If it is absent, the
+    abstention metric is simply not measured for this run and is reported as
+    absent rather than estimated.
+    """
+    verify_path = EVAL_DIR / "human_verification.jsonl"
+    if not verify_path.exists():
+        raise SystemExit(f"{verify_path} missing - run `ragft.eval.label verify` first")
+
+    verdicts = {
+        str(json.loads(line)["gold_id"]): str(json.loads(line)["verdict"])
+        for line in verify_path.open(encoding="utf-8")
+        if line.strip()
+    }
+    candidates = load_candidates()
+    kept = [c for c in candidates if verdicts.get(c.gold_id) == "keep"]
+    for item in kept:
+        item.human_verified = True
+
+    out = EVAL_DIR / "gold.jsonl"
+    with out.open("w", encoding="utf-8") as fh:
+        for item in kept:
+            fh.write(json.dumps(asdict(item), ensure_ascii=False) + "\n")
+
+    counts = Counter(v for v in verdicts.values())
+    summary = {
+        "candidates": len(candidates),
+        "verdicts": dict(counts),
+        "gold_items": len(kept),
+        "by_stratum": dict(Counter(i.stratum for i in kept)),
+        "unanswerable_items": sum(i.unanswerable for i in kept),
+        "abstention_measurable": any(i.unanswerable for i in kept),
+        "note": (
+            "Only human-verified `keep` items are included. Without a hand-written "
+            "unanswerable stratum the abstention metric is NOT measured for this "
+            "run, and is reported as absent rather than estimated."
+        ),
+    }
+    (EVAL_DIR / "gold_final_summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(summary, indent=2))
+    return summary
+
+
 def main() -> None:
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    build()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--finalize", action="store_true", help="promote verified candidates to gold.jsonl"
+    )
+    args = parser.parse_args()
+    finalize() if args.finalize else build()
 
 
 if __name__ == "__main__":

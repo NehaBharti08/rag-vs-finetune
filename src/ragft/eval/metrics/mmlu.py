@@ -20,9 +20,19 @@ from typing import Any
 import torch
 
 # In-domain: adaptation should hold or improve these.
-IN_DOMAIN = ("high_school_biology", "college_biology")
+#
+# CAVEAT worth stating rather than burying: MMLU has no Indian-law subject.
+# `professional_law` and `jurisprudence` are US-centric, so this probe measures
+# whether general legal reasoning survives adaptation - NOT whether the model
+# learned Indian statutes. The corpus-specific gain is measured by the gold set;
+# this is the capability floor.
+#
+# Note the inversion from the biology run of this benchmark: `professional_law`
+# was one of the out-of-domain subjects there and is in-domain here, while
+# biology has moved the other way. Same probe, mirrored.
+IN_DOMAIN = ("professional_law", "jurisprudence")
 # Far out-of-domain: this is where forgetting shows up.
-OUT_OF_DOMAIN = ("formal_logic", "professional_law")
+OUT_OF_DOMAIN = ("college_biology", "formal_logic")
 SUBJECTS = IN_DOMAIN + OUT_OF_DOMAIN
 
 CHOICES = ("A", "B", "C", "D")

@@ -9,20 +9,20 @@ guarantee rather than trying to establish it after the fact.
 
 ## Verdict: ALL PASSED
 
-3,161 pairs (2,839 train / 322 val).
+5,019 pairs (4,470 train / 549 val).
 
 | Check | Result | Detail |
 |---|---|---|
-| `provenance` | PASS | split_violations=0, train_sections_used=299 |
+| `provenance` | PASS | split_violations=0, train_sections_used=988 |
 | `ngram_val_vs_train` | PASS | texts_with_overlap=0 |
 | `minhash_val_vs_train` | PASS | pairs=0 |
-| `embedding_val_vs_train` | PASS | max_similarity=0.945, over_threshold=0 |
+| `embedding_val_vs_train` | PASS | max_similarity=0.9469, over_threshold=0 |
 | `minhash_within_train` | PASS | pairs=0 |
 
 ## Enforcement
 
-Val questions removed as semantic duplicates of train questions: **2**
-(324 -> 322), at the pre-registered cosine threshold
+Val questions removed as semantic duplicates of train questions: **1**
+(550 -> 549), at the pre-registered cosine threshold
 0.95.
 
 Val exists to monitor overfitting, so a val question that paraphrases a training
@@ -35,7 +35,7 @@ question: *Biology* 31.1 and *Anatomy and Physiology* 2.4 both define "organic
 compound". Structural provenance cannot catch that, which is precisely why the
 embedding check exists.
 
-**9 pairs sit above a stricter 0.90 and were left in
+**20 pairs sit above a stricter 0.90 and were left in
 place.** Tightening a threshold after seeing the numbers is exactly the post-hoc
 adjustment this project exists to avoid, so the residual is reported instead of
 acted on.

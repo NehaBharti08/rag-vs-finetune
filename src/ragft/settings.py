@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     )
 
     # --- Embeddings (free path) ---
-    fastembed_model: str = Field(default="BAAI/bge-base-en-v1.5", alias="FASTEMBED_MODEL")
+    fastembed_model: str = Field(default="BAAI/bge-large-en-v1.5", alias="FASTEMBED_MODEL")
 
     # --- Qdrant ---
     qdrant_mode: Literal["embedded", "server", "cloud"] = Field(
@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     qdrant_path: str = Field(default="data/index", alias="QDRANT_PATH")
     qdrant_url: str | None = Field(default=None, alias="QDRANT_URL")
     qdrant_api_key: str | None = Field(default=None, alias="QDRANT_API_KEY")
-    qdrant_collection: str = Field(default="ragft_biology_v1", alias="QDRANT_COLLECTION")
+    qdrant_collection: str = Field(default="ragft_indialaw_v1", alias="QDRANT_COLLECTION")
 
     # --- Tracking ---
     wandb_project: str = Field(default="rag-vs-finetune", alias="WANDB_PROJECT")

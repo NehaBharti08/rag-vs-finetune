@@ -15,11 +15,11 @@ Code is MIT; this data is not.
 
 | Split | Pairs |
 |---|---|
-| train | 2,839 |
-| val | 322 |
-| **total** | **3,161** |
+| train | 2,830 |
+| val | 341 |
+| **total** | **3,171** |
 
-Covering 335 distinct corpus sections.
+Covering 1090 distinct corpus sections.
 
 ## Composition
 
@@ -28,11 +28,11 @@ it could not be adjusted after seeing which arm it favoured.
 
 | Type | Count | Share |
 |---|---|---|
-| factual | 1,164 | 36.8% |
-| definition | 593 | 18.8% |
-| applied | 567 | 17.9% |
-| multihop | 509 | 16.1% |
-| unanswerable | 328 | 10.4% |
+| factual | 1,268 | 40.0% |
+| multihop | 634 | 20.0% |
+| applied | 476 | 15.0% |
+| definition | 476 | 15.0% |
+| unanswerable | 317 | 10.0% |
 
 Two entries pull deliberately in opposite directions. **multihop** favours
 fine-tuning, because chunk retrieval is structurally weak at synthesising
@@ -45,10 +45,10 @@ rather than a property of the method. Dropping either would strawman one side.
 | | |
 |---|---|
 | Generator | `gemma4:e4b` |
-| Tasks | 335 |
-| Wall clock | 0.8 h |
-| Prompt tokens | 324,437 |
-| Completion tokens | 275,357 |
+| Tasks | 624 |
+| Wall clock | 2.0 h |
+| Prompt tokens | 457,405 |
+| Completion tokens | 635,224 |
 | **Cost** | **$0.00** |
 
 The generator is deliberately **not** Qwen-family. The student model is
@@ -59,16 +59,16 @@ Generation prompts are published in [`../prompts/generation/`](../prompts/genera
 
 ## Filtering
 
-Rejection rate **13.6%** (498 of 3,661).
+Rejection rate **0.6%** (29 of 5,049).
 
 | Criterion | Rejected |
 |---|---|
-| `passage_reference` | 462 |
-| `not_a_question` | 24 |
-| `question_length` | 10 |
-| `duplicate_question` | 2 |
+| `passage_reference` | 16 |
+| `not_a_question` | 7 |
+| `question_length` | 5 |
+| `duplicate_question` | 1 |
 
-`946` fields were **normalised** rather than
+`5` fields were **normalised** rather than
 rejected: the local generator opens explanations with "The passage states
 that ..." despite instructions. That prefix strips losslessly, and rejecting it
 would have discarded most of the dataset over a stylistic tic. References that
@@ -91,16 +91,16 @@ Measured with the `Qwen/Qwen2.5-7B-Instruct` tokenizer over the full formatted e
 
 | Percentile | Tokens |
 |---|---|
-| p50 | 107 |
-| p75 | 130 |
-| p90 | 150 |
-| p95 | 161 |
-| **p99** | **179** |
-| max | 221 |
-| mean | 112.8 |
+| p50 | 129 |
+| p75 | 161 |
+| p90 | 191 |
+| p95 | 206 |
+| **p99** | **231** |
+| max | 287 |
+| mean | 137.4 |
 
 **`max_seq_length` = 512**, set from p99 rather
-than guessed. The mean (112.8 tokens) is what drives the GPU-hour
+than guessed. The mean (137.4 tokens) is what drives the GPU-hour
 projection, because packing concatenates short examples to fill each block --
 using `examples x seq_len` instead overstates the training budget by the
 packing ratio.
@@ -109,16 +109,16 @@ The project plan assumed ~600 tokens and `max_seq_length` 2048. Both were
 wrong, for a structural reason worth stating: a training example is a question
 plus a formatted answer and contains **no passage**, because the no-retrieval
 arm has to recall parametrically. There is no long context to hold. Padding to
-2048 would have wasted roughly 18x the compute for nothing.
+2048 would have wasted roughly 15x the compute for nothing.
 
 ## Limitations
 
-**The set is small in tokens, not just in rows.** 2,839
-training examples at 112.8 tokens is ~320k
+**The set is small in tokens, not just in rows.** 2,830
+training examples at 137.4 tokens is ~389k
 tokens per epoch. With packing at seq_len 512 that is
-only ~625
-sequences, so an epoch is **~78 optimizer
-steps** at effective batch 8, and ~235
+only ~759
+sequences, so an epoch is **~95 optimizer
+steps** at effective batch 8, and ~285
 over three epochs.
 
 That is a thin training signal for adapting a 7B model, and no batch size fixes

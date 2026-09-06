@@ -11,9 +11,11 @@ The alternative -- generate everything, then filter out overlaps -- is what most
 projects do, and it is strictly weaker: near-duplicate detection has a
 threshold, and whatever slips under it is silent contamination.
 
-Stratified by book so both titles appear in every split. An eval set drawn
-mostly from one book would confound the adaptation result with the difference
-between general biology and human anatomy.
+Stratified by ACT so every statute appears in every split. An eval set drawn
+mostly from one act would confound the adaptation result with the difference
+between, say, criminal procedure and contract law -- and would also destroy the
+enactment-recency stratification, since three acts are from 2023 and one from
+1872.
 """
 
 from __future__ import annotations
@@ -53,15 +55,17 @@ RATIOS: dict[Split, float] = {
 def assign(sections: list[Section], seed: int = SPLIT_SEED) -> dict[str, str]:
     """Map section_id -> split, stratified by book, deterministic given seed."""
     rng = random.Random(seed)
-    by_book: dict[str, list[Section]] = defaultdict(list)
+    by_act: dict[str, list[Section]] = defaultdict(list)
     for s in sections:
-        by_book[s.book_slug].append(s)
+        by_act[s.act_slug].append(s)
 
     assignment: dict[str, str] = {}
-    for slug in sorted(by_book):
+    for slug in sorted(by_act):
         # Sort before shuffling so the result never depends on the order
         # sections happened to come out of the parser.
-        group = sorted(by_book[slug], key=lambda s: (s.chapter, s.number))
+        # Natural statutory order (9 before 10, 103 before 103A) so the shuffle
+        # never depends on whatever order the fetcher returned.
+        group = sorted(by_act[slug], key=lambda s: s.sort_key)
         rng.shuffle(group)
 
         n = len(group)
@@ -86,11 +90,11 @@ def build(seed: int = SPLIT_SEED) -> dict[str, Any]:
     for section_id, split in assignment.items():
         by_split[split].append(section_id)
 
-    per_book: dict[str, Counter[str]] = defaultdict(Counter)
+    per_act: dict[str, Counter[str]] = defaultdict(Counter)
     chars: dict[str, int] = defaultdict(int)
     for s in sections:
         split = assignment[s.section_id]
-        per_book[split][s.book_slug] += 1
+        per_act[split][s.act_slug] += 1
         chars[split] += s.char_count
 
     payload = {
@@ -104,7 +108,7 @@ def build(seed: int = SPLIT_SEED) -> dict[str, Any]:
         ),
         "counts": {k: len(v) for k, v in sorted(by_split.items())},
         "chars": dict(sorted(chars.items())),
-        "per_book": {k: dict(v) for k, v in sorted(per_book.items())},
+        "per_act": {k: dict(v) for k, v in sorted(per_act.items())},
         "assignment": dict(sorted(assignment.items())),
     }
     SPLIT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -133,9 +137,9 @@ def main() -> None:
     payload = build(args.seed)
     print(f"seed {payload['seed']}")
     for split, count in payload["counts"].items():
-        books = payload["per_book"][split]
+        acts = payload["per_act"][split]
         print(
-            f"  {split:12s} {count:4d} sections  " f"{payload['chars'][split]:>10,} chars  {books}"
+            f"  {split:12s} {count:4d} sections  " f"{payload['chars'][split]:>10,} chars  {acts}"
         )
     total = sum(payload["counts"].values())
     print(f"  {'total':12s} {total:4d}")

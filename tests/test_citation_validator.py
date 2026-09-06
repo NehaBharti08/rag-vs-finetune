@@ -1,8 +1,14 @@
 """Tests for the judge-free hallucination metric.
 
-The citation validator converts "is this answer grounded?" into a lookup
-against a finite registry. If it accepted a fabricated citation, the headline
-hallucination number would be wrong in the flattering direction.
+The citation validator converts "is this answer grounded?" into a lookup against
+a finite registry of acts and section numbers. If it accepted a fabricated
+citation, the headline hallucination number would be wrong in the flattering
+direction.
+
+Legal citation raises one case the textbook corpus never had: a model answering
+from **repealed** law. The Indian Penal Code, the Code of Criminal Procedure and
+the Indian Evidence Act were replaced in 2023, so a pre-2024 model will
+confidently cite them. Those must resolve as out-of-corpus rather than valid.
 """
 
 from __future__ import annotations
@@ -10,6 +16,7 @@ from __future__ import annotations
 import pytest
 
 from ragft.corpus.toc import CitationVerdict, registry
+from ragft.eval.metrics.citation import aggregate, score_one
 
 
 @pytest.fixture(scope="module")
@@ -18,51 +25,108 @@ def reg():  # type: ignore[no-untyped-def]
 
 
 class TestValidCitations:
-    def test_full_form_with_licence(self, reg) -> None:  # type: ignore[no-untyped-def]
-        check = reg.validate("**Source.** Biology, §7.3, p.198 (OpenStax, CC BY 4.0)")
-        assert check.is_valid
-        assert check.has_licence_attribution
+    def test_canonical_form(self, reg) -> None:  # type: ignore[no-untyped-def]
+        assert reg.validate("**Source.** The Bharatiya Nyaya Sanhita, 2023, §103").is_valid
 
-    def test_missing_licence_is_valid_but_flagged(self, reg) -> None:  # type: ignore[no-untyped-def]
-        """CC BY attribution is a licence obligation, so its absence is recorded."""
-        check = reg.validate("**Source.** Biology, §7.3, p.198")
-        assert check.is_valid
-        assert not check.has_licence_attribution
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Source. Bharatiya Nyaya Sanhita, section 103",
+            "Source. The Indian Contract Act, 1872, s. 11",
+            "Source. The Indian Contract Act, 1872, Sec 73",
+            "Source. The Bharatiya Sakshya Adhiniyam, 2023, §66",
+        ],
+    )
+    def test_accepts_the_forms_a_model_actually_writes(self, reg, text) -> None:  # type: ignore[no-untyped-def]
+        """Marker and shorthand variation is not hallucination.
+
+        Scoring `s. 11` as unparseable would inflate the very metric this
+        exists to measure.
+        """
+        assert reg.validate(text).is_valid
+
+    def test_lettered_section_labels(self, reg) -> None:  # type: ignore[no-untyped-def]
+        """Indian statutes carry inserted sections such as 498A - labels are strings."""
+        check = reg.validate("The Bharatiya Nyaya Sanhita, 2023, §9999A")
+        assert check.verdict is CitationVerdict.UNKNOWN_SECTION
+        assert check.cited_section == "9999A"
 
 
 class TestFabrications:
-    def test_fabricated_page_is_rejected(self, reg) -> None:  # type: ignore[no-untyped-def]
-        assert reg.validate("Biology, §7.3, p.999").verdict is CitationVerdict.PAGE_OUT_OF_RANGE
-
     def test_fabricated_section_is_rejected(self, reg) -> None:  # type: ignore[no-untyped-def]
-        assert reg.validate("Biology, §99.9, p.198").verdict is CitationVerdict.UNKNOWN_SECTION
+        assert (
+            reg.validate("The Bharatiya Nyaya Sanhita, 2023, §9999").verdict
+            is CitationVerdict.UNKNOWN_SECTION
+        )
 
-    def test_book_outside_the_corpus_is_rejected(self, reg) -> None:  # type: ignore[no-untyped-def]
-        """Microbiology is real, but CC BY-NC-SA and deliberately not indexed."""
-        assert reg.validate("Microbiology, §2.1, p.50").verdict is CitationVerdict.UNKNOWN_BOOK
+    @pytest.mark.parametrize(
+        "repealed",
+        [
+            "The Indian Penal Code, 1860, §302",
+            "The Code of Criminal Procedure, 1973, §154",
+            "The Indian Evidence Act, 1872, §65B",
+        ],
+    )
+    def test_repealed_pre_2023_law_is_out_of_corpus(self, reg, repealed) -> None:  # type: ignore[no-untyped-def]
+        """The signature failure of a pre-2024 model on this corpus.
+
+        Answering with IPC 302 for murder is the trained-in reflex. It is not a
+        valid citation against statutes now in force, and must not score as one.
+        """
+        assert reg.validate(repealed).verdict is CitationVerdict.UNKNOWN_ACT
 
     def test_no_citation_at_all(self, reg) -> None:  # type: ignore[no-untyped-def]
-        assert reg.validate("Osmosis is water diffusion.").verdict is CitationVerdict.UNPARSEABLE
+        assert reg.validate("Murder is punishable by death.").verdict is CitationVerdict.UNPARSEABLE
 
 
-class TestAggregate:
-    def test_valid_rate_over_a_mixed_batch(self, reg) -> None:  # type: ignore[no-untyped-def]
-        stats = reg.validate_all(
-            [
-                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
-                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
-                "Biology, §7.3, p.999",
-                "no citation here",
-            ]
+class TestGradedLevels:
+    """Existence and correctness are different questions.
+
+    In the biology run of this benchmark 99.3% of citations named a real
+    section and only 2.2% named the right one. A metric stopping at "exists"
+    would have reported near-perfect grounding.
+    """
+
+    def test_correct_section_scores_every_level(self) -> None:
+        s = score_one("**Source.** The Bharatiya Nyaya Sanhita, 2023, §103", ["bns2023:103"])
+        assert (s.parseable, s.act_exists, s.section_exists, s.section_correct) == (
+            True,
+            True,
+            True,
+            True,
         )
-        assert stats["n"] == 4
-        assert stats["valid_rate"] == 0.5
-        assert stats["licence_attribution_rate"] == 0.5
+
+    def test_real_but_wrong_section_is_caught(self) -> None:
+        """The failure mode a single validity number hides."""
+        s = score_one("The Bharatiya Nyaya Sanhita, 2023, §103", ["bns2023:64"])
+        assert s.section_exists is True
+        assert s.section_correct is False
+
+    def test_repealed_act_fails_at_the_act_level(self) -> None:
+        s = score_one("The Indian Penal Code, 1860, §302", ["bns2023:103"])
+        assert s.parseable is True
+        assert s.act_exists is False
+        assert s.section_correct is False
+
+    def test_fabrication_and_out_of_corpus_are_distinguished(self) -> None:
+        agg = aggregate(
+            [
+                "The Bharatiya Nyaya Sanhita, 2023, §103",  # correct
+                "The Bharatiya Nyaya Sanhita, 2023, §103",  # real section, wrong one
+                "The Indian Penal Code, 1860, §302",  # repealed act
+                "no citation here",
+            ],
+            [["bns2023:103"], ["bns2023:64"], ["bns2023:103"], ["bns2023:103"]],
+        )
+        assert agg["section_correct_rate"] == 0.25
+        assert agg["fabrication_rate"] == 0.25
+        assert agg["out_of_corpus_act_rate"] == 0.25
+        assert agg["parseable_rate"] == 0.75
 
 
 class TestRegistryCoverage:
     def test_registry_is_populated(self, reg) -> None:  # type: ignore[no-untyped-def]
-        assert len(reg.section_ids) > 300
+        assert len(reg.section_ids) > 1000
 
     def test_every_section_validates_its_own_citation(self, reg) -> None:  # type: ignore[no-untyped-def]
         """Generated training data cites sections this way, so it must round-trip.
@@ -72,52 +136,3 @@ class TestRegistryCoverage:
         """
         bad = [s.section_id for s in reg.sections if not reg.validate(s.citation).is_valid]
         assert bad == []
-
-
-class TestGradedCitationLevels:
-    """Existence and correctness are different questions.
-
-    Measured on the baseline arm, 99.3% of citations named a real section and
-    only 2.2% named the right one. A metric that stopped at "exists" would have
-    reported near-perfect grounding.
-    """
-
-    def test_correct_section_scores_every_level(self) -> None:
-        from ragft.eval.metrics.citation import score_one
-
-        s = score_one("**Source.** Biology, §7.3, p.198 (OpenStax, CC BY 4.0)", ["biology:7.3"])
-        assert (s.parseable, s.section_exists, s.section_correct, s.page_in_range) == (
-            True,
-            True,
-            True,
-            True,
-        )
-
-    def test_real_but_wrong_section_is_caught(self) -> None:
-        """The failure mode a single validity number hides."""
-        from ragft.eval.metrics.citation import score_one
-
-        s = score_one("**Source.** Biology, §7.3, p.198 (OpenStax, CC BY 4.0)", ["biology:12.1"])
-        assert s.section_exists is True
-        assert s.section_correct is False
-
-    def test_right_section_wrong_page_fails_the_page_level(self) -> None:
-        from ragft.eval.metrics.citation import score_one
-
-        s = score_one("**Source.** Biology, §7.3, p.999", ["biology:7.3"])
-        assert s.section_correct is True
-        assert s.page_in_range is False
-
-    def test_fabrication_rate_counts_plausible_wrong_citations(self) -> None:
-        from ragft.eval.metrics.citation import aggregate
-
-        agg = aggregate(
-            [
-                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
-                "Biology, §7.3, p.198 (OpenStax, CC BY 4.0)",
-            ],
-            [["biology:7.3"], ["biology:99.9"]],
-        )
-        assert agg["section_exists_rate"] == 1.0
-        assert agg["section_correct_rate"] == 0.5
-        assert agg["fabrication_rate"] == 0.5

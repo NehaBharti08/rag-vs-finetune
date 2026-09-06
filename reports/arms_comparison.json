@@ -4,38 +4,38 @@
       "n": 300,
       "citation": {
         "n": 300,
-        "parseable_rate": 0.9833,
-        "section_exists_rate": 0.98,
-        "section_correct_rate": 0.0133,
-        "page_in_range_rate": 0.0033,
-        "licence_attribution_rate": 0.9833,
-        "fabrication_rate": 0.9667,
-        "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+        "parseable_rate": 0.9867,
+        "act_exists_rate": 0.9867,
+        "section_exists_rate": 0.7833,
+        "section_correct_rate": 0.0033,
+        "fabrication_rate": 0.78,
+        "out_of_corpus_act_rate": 0.0,
+        "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
       },
       "format": {
         "n": 300,
-        "valid_rate": 0.9333,
-        "complete_rate": 0.9333,
-        "has_answer_rate": 0.9333,
-        "has_why_rate": 0.9867,
-        "has_source_rate": 0.9733
+        "valid_rate": 0.9967,
+        "complete_rate": 0.9967,
+        "has_answer_rate": 0.9967,
+        "has_why_rate": 1.0,
+        "has_source_rate": 1.0
       },
       "latency": {
         "n": 300,
-        "p50_seconds": 2.1431,
-        "p95_seconds": 2.7642,
-        "mean_seconds": 2.1525,
-        "min_seconds": 0.8772,
-        "max_seconds": 3.2083,
-        "gpu_seconds_per_query": 2.1525,
-        "usd_per_1k_queries": 0.2152,
+        "p50_seconds": 1.872,
+        "p95_seconds": 2.3738,
+        "mean_seconds": 1.8919,
+        "min_seconds": 1.0993,
+        "max_seconds": 2.6189,
+        "gpu_seconds_per_query": 1.8919,
+        "usd_per_1k_queries": 0.1892,
         "usd_per_gpu_hour_assumed": 0.36,
-        "mean_prompt_tokens": 417.8,
-        "mean_completion_tokens": 109.3,
+        "mean_prompt_tokens": 485.6,
+        "mean_completion_tokens": 97.5,
         "contention": {
-          "memory_used_mib": 1,
-          "utilization_pct": 0,
-          "exclusive": true
+          "memory_used_mib": 897,
+          "utilization_pct": 83,
+          "exclusive": false
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
@@ -43,29 +43,29 @@
       "retrieval_hit_rate": null,
       "by_stratum": {
         "parametric_answerable": {
-          "n": 227,
+          "n": 80,
           "citation": {
-            "n": 227,
+            "n": 80,
             "parseable_rate": 1.0,
-            "section_exists_rate": 1.0,
-            "section_correct_rate": 0.0176,
-            "page_in_range_rate": 0.0044,
-            "licence_attribution_rate": 1.0,
-            "fabrication_rate": 0.9824,
-            "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+            "act_exists_rate": 1.0,
+            "section_exists_rate": 0.85,
+            "section_correct_rate": 0.0125,
+            "fabrication_rate": 0.8375,
+            "out_of_corpus_act_rate": 0.0,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
           }
         },
         "parametric_unanswerable": {
-          "n": 73,
+          "n": 220,
           "citation": {
-            "n": 73,
-            "parseable_rate": 0.9315,
-            "section_exists_rate": 0.9178,
+            "n": 220,
+            "parseable_rate": 0.9818,
+            "act_exists_rate": 0.9818,
+            "section_exists_rate": 0.7591,
             "section_correct_rate": 0.0,
-            "page_in_range_rate": 0.0,
-            "licence_attribution_rate": 0.9315,
-            "fabrication_rate": 0.9178,
-            "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+            "fabrication_rate": 0.7591,
+            "out_of_corpus_act_rate": 0.0,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
           }
         }
       }
@@ -75,67 +75,207 @@
       "citation": {
         "n": 300,
         "parseable_rate": 1.0,
-        "section_exists_rate": 1.0,
-        "section_correct_rate": 0.7,
-        "page_in_range_rate": 0.9967,
-        "licence_attribution_rate": 1.0,
-        "fabrication_rate": 0.3,
-        "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+        "act_exists_rate": 0.9833,
+        "section_exists_rate": 0.9833,
+        "section_correct_rate": 0.8367,
+        "fabrication_rate": 0.1467,
+        "out_of_corpus_act_rate": 0.0167,
+        "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
       },
       "format": {
         "n": 300,
-        "valid_rate": 0.97,
-        "complete_rate": 0.97,
-        "has_answer_rate": 0.97,
-        "has_why_rate": 0.97,
-        "has_source_rate": 0.97
+        "valid_rate": 1.0,
+        "complete_rate": 1.0,
+        "has_answer_rate": 1.0,
+        "has_why_rate": 1.0,
+        "has_source_rate": 1.0
       },
       "latency": {
         "n": 300,
-        "p50_seconds": 2.7436,
-        "p95_seconds": 3.5078,
-        "mean_seconds": 2.8011,
-        "min_seconds": 1.9511,
-        "max_seconds": 4.4245,
-        "gpu_seconds_per_query": 2.8011,
-        "usd_per_1k_queries": 0.2801,
+        "p50_seconds": 2.3799,
+        "p95_seconds": 3.3324,
+        "mean_seconds": 2.4677,
+        "min_seconds": 1.5985,
+        "max_seconds": 6.0081,
+        "gpu_seconds_per_query": 2.4677,
+        "usd_per_1k_queries": 0.2468,
         "usd_per_gpu_hour_assumed": 0.36,
-        "mean_prompt_tokens": 2879.8,
-        "mean_completion_tokens": 121.0,
+        "mean_prompt_tokens": 1602.9,
+        "mean_completion_tokens": 110.7,
         "contention": {
-          "memory_used_mib": 1,
-          "utilization_pct": 0,
-          "exclusive": true
+          "memory_used_mib": 897,
+          "utilization_pct": 83,
+          "exclusive": false
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
       "label": "A2 base + RAG",
-      "retrieval_hit_rate": 0.8933,
+      "retrieval_hit_rate": 0.94,
       "by_stratum": {
         "parametric_answerable": {
-          "n": 227,
+          "n": 80,
           "citation": {
-            "n": 227,
+            "n": 80,
             "parseable_rate": 1.0,
-            "section_exists_rate": 1.0,
-            "section_correct_rate": 0.6828,
-            "page_in_range_rate": 0.9956,
-            "licence_attribution_rate": 1.0,
-            "fabrication_rate": 0.3172,
-            "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+            "act_exists_rate": 0.9875,
+            "section_exists_rate": 0.9875,
+            "section_correct_rate": 0.8625,
+            "fabrication_rate": 0.125,
+            "out_of_corpus_act_rate": 0.0125,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
           }
         },
         "parametric_unanswerable": {
-          "n": 73,
+          "n": 220,
           "citation": {
-            "n": 73,
+            "n": 220,
             "parseable_rate": 1.0,
+            "act_exists_rate": 0.9818,
+            "section_exists_rate": 0.9818,
+            "section_correct_rate": 0.8273,
+            "fabrication_rate": 0.1545,
+            "out_of_corpus_act_rate": 0.0182,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+          }
+        }
+      }
+    },
+    "A3_ft_zeroshot": {
+      "n": 300,
+      "citation": {
+        "n": 300,
+        "parseable_rate": 1.0,
+        "act_exists_rate": 1.0,
+        "section_exists_rate": 0.99,
+        "section_correct_rate": 0.0,
+        "fabrication_rate": 0.99,
+        "out_of_corpus_act_rate": 0.0,
+        "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+      },
+      "format": {
+        "n": 300,
+        "valid_rate": 1.0,
+        "complete_rate": 1.0,
+        "has_answer_rate": 1.0,
+        "has_why_rate": 1.0,
+        "has_source_rate": 1.0
+      },
+      "latency": {
+        "n": 300,
+        "p50_seconds": 3.8825,
+        "p95_seconds": 5.2981,
+        "mean_seconds": 3.9497,
+        "min_seconds": 2.1732,
+        "max_seconds": 6.4007,
+        "gpu_seconds_per_query": 3.9497,
+        "usd_per_1k_queries": 0.395,
+        "usd_per_gpu_hour_assumed": 0.36,
+        "mean_prompt_tokens": 52.5,
+        "mean_completion_tokens": 91.2,
+        "contention": {
+          "memory_used_mib": 897,
+          "utilization_pct": 84,
+          "exclusive": false
+        },
+        "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+      },
+      "label": "A3 fine-tuned, no retrieval",
+      "retrieval_hit_rate": null,
+      "by_stratum": {
+        "parametric_answerable": {
+          "n": 80,
+          "citation": {
+            "n": 80,
+            "parseable_rate": 1.0,
+            "act_exists_rate": 1.0,
+            "section_exists_rate": 0.9875,
+            "section_correct_rate": 0.0,
+            "fabrication_rate": 0.9875,
+            "out_of_corpus_act_rate": 0.0,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+          }
+        },
+        "parametric_unanswerable": {
+          "n": 220,
+          "citation": {
+            "n": 220,
+            "parseable_rate": 1.0,
+            "act_exists_rate": 1.0,
+            "section_exists_rate": 0.9909,
+            "section_correct_rate": 0.0,
+            "fabrication_rate": 0.9909,
+            "out_of_corpus_act_rate": 0.0,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+          }
+        }
+      }
+    },
+    "A4_ft_rag": {
+      "n": 300,
+      "citation": {
+        "n": 300,
+        "parseable_rate": 1.0,
+        "act_exists_rate": 0.9967,
+        "section_exists_rate": 0.9967,
+        "section_correct_rate": 0.8833,
+        "fabrication_rate": 0.1133,
+        "out_of_corpus_act_rate": 0.0033,
+        "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+      },
+      "format": {
+        "n": 300,
+        "valid_rate": 1.0,
+        "complete_rate": 1.0,
+        "has_answer_rate": 1.0,
+        "has_why_rate": 1.0,
+        "has_source_rate": 1.0
+      },
+      "latency": {
+        "n": 300,
+        "p50_seconds": 5.159,
+        "p95_seconds": 7.392,
+        "mean_seconds": 5.3095,
+        "min_seconds": 3.1329,
+        "max_seconds": 10.1221,
+        "gpu_seconds_per_query": 5.3095,
+        "usd_per_1k_queries": 0.5309,
+        "usd_per_gpu_hour_assumed": 0.36,
+        "mean_prompt_tokens": 1138.9,
+        "mean_completion_tokens": 118.0,
+        "contention": {
+          "memory_used_mib": 897,
+          "utilization_pct": 84,
+          "exclusive": false
+        },
+        "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
+      },
+      "label": "A4 fine-tuned + RAG",
+      "retrieval_hit_rate": 0.94,
+      "by_stratum": {
+        "parametric_answerable": {
+          "n": 80,
+          "citation": {
+            "n": 80,
+            "parseable_rate": 1.0,
+            "act_exists_rate": 1.0,
             "section_exists_rate": 1.0,
-            "section_correct_rate": 0.7534,
-            "page_in_range_rate": 1.0,
-            "licence_attribution_rate": 1.0,
-            "fabrication_rate": 0.2466,
-            "note": "fabrication_rate is the share citing a REAL section that is not the right one - a plausible, well-formed, wrong citation. It is the quantity that a single 'citation validity' number would hide."
+            "section_correct_rate": 0.875,
+            "fabrication_rate": 0.125,
+            "out_of_corpus_act_rate": 0.0,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
+          }
+        },
+        "parametric_unanswerable": {
+          "n": 220,
+          "citation": {
+            "n": 220,
+            "parseable_rate": 1.0,
+            "act_exists_rate": 0.9955,
+            "section_exists_rate": 0.9955,
+            "section_correct_rate": 0.8864,
+            "fabrication_rate": 0.1091,
+            "out_of_corpus_act_rate": 0.0045,
+            "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law."
           }
         }
       }
@@ -143,6 +283,8 @@
   },
   "arms_run": [
     "A1_base_zeroshot",
-    "A2_base_rag"
+    "A2_base_rag",
+    "A3_ft_zeroshot",
+    "A4_ft_rag"
   ]
 }

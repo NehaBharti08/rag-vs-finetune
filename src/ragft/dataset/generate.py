@@ -37,7 +37,7 @@ from typing import Any
 from ragft.corpus.parse import Section, load_sections
 from ragft.corpus.split import load_splits
 from ragft.dataset.passages import to_passages
-from ragft.dataset.schema import QAPair, QAType, chunk_sha256, make_qa_id
+from ragft.dataset.schema import TYPE_MIX, QAPair, QAType, chunk_sha256, make_qa_id
 from ragft.llmclient import build_client
 from ragft.settings import REPO_ROOT, Settings
 
@@ -78,29 +78,77 @@ def build_tasks(sections: list[Section], split: str, rng: random.Random) -> list
     tasks: list[Task] = []
     usable = [s for s in sections if to_passages(s)]
 
-    for section in usable:
+    # ONE type per section, assigned in proportion to TYPE_MIX, rather than
+    # every type for every section.
+    #
+    # The textbook corpus had 299 training sections of ~13,000 characters, so
+    # asking each for four question types was reasonable. This corpus has 988
+    # sections of ~550 characters: the same scheme produced 4,446 tasks (~18
+    # hours) and would have drawn four questions out of a single short
+    # provision, which yields near-duplicates rather than four questions.
+    #
+    # Assigning one type per section covers more of the statute book for less
+    # compute, and the declared mix is preserved because assignment is
+    # proportional. Shuffled first so type does not correlate with statutory
+    # order, which would confound type with act.
+    single_types: list[QAType] = [t for t in TYPE_MIX if t is not QAType.MULTIHOP]
+
+    # Weight by share / pairs-per-call, NOT by share alone.
+    #
+    # TYPE_MIX declares a share of PAIRS, but a section yields a different
+    # number of pairs depending on its type: 4 for factual, 1 for unanswerable.
+    # Allocating sections by pair-share directly therefore over-produces the
+    # high-yield types and starves the low-yield ones. It delivered factual at
+    # 55.9% against a declared 40%, and unanswerable at 3.5% against 10% -
+    # starving refusal training for the second time in this project, by a
+    # different mechanism than the first.
+    #
+    # Dividing by PER_CALL converts a pair-share into a section-share.
+    weights = {t: TYPE_MIX[t] / PER_CALL[t] for t in single_types}
+    weight_total = sum(weights.values())
+
+    pool = list(usable)
+    rng.shuffle(pool)
+    assigned: list[tuple[Section, QAType]] = []
+    cursor = 0
+    for qa_type in single_types:
+        share = weights[qa_type] / weight_total
+        take = round(share * len(pool))
+        for section in pool[cursor : cursor + take]:
+            assigned.append((section, qa_type))
+        cursor += take
+    # Rounding can leave a tail; give it to the largest bucket.
+    for section in pool[cursor:]:
+        assigned.append((section, single_types[0]))
+
+    for section, qa_type in assigned:
         passages = to_passages(section)
-        for i, qa_type in enumerate(
-            (QAType.FACTUAL, QAType.DEFINITION, QAType.APPLIED, QAType.UNANSWERABLE)
-        ):
-            passage = passages[i % len(passages)]
-            tasks.append(
-                Task(
-                    task_id=f"{split}:{section.section_id}:{qa_type.value}",
-                    qa_type=qa_type,
-                    sections=(section,),
-                    passages=(passage,),
-                    n=PER_CALL[qa_type],
-                    split=split,
-                )
+        tasks.append(
+            Task(
+                task_id=f"{split}:{section.section_id}:{qa_type.value}",
+                qa_type=qa_type,
+                sections=(section,),
+                passages=(passages[0],),
+                n=PER_CALL[qa_type],
+                split=split,
             )
+        )
 
     # Multi-hop pairs. Prefer two sections from the same book (a real
     # conceptual link), and allow the Biology <-> Anatomy seam, which is where
     # genuinely cross-title questions come from rather than contrived ones.
+    # Cap multi-hop to its declared share of PAIRS, not of sections. Pairing
+    # every two sections produced 494 tasks x 4 pairs = 41% of the dataset
+    # against a declared 20%, which would have silently rewritten the mix that
+    # `tests/test_dataset_mix.py` exists to enforce.
+    single_pairs = sum(t.n for t in tasks)
+    mh_share = TYPE_MIX[QAType.MULTIHOP]
+    target_mh_pairs = int(single_pairs * mh_share / (1 - mh_share))
+    max_mh_tasks = max(1, target_mh_pairs // PER_CALL[QAType.MULTIHOP])
+
     pool = list(usable)
     rng.shuffle(pool)
-    for a, b in zip(pool[::2], pool[1::2], strict=False):
+    for a, b in list(zip(pool[::2], pool[1::2], strict=False))[:max_mh_tasks]:
         tasks.append(
             Task(
                 task_id=f"{split}:{a.section_id}+{b.section_id}:multihop",
@@ -119,18 +167,18 @@ def render(task: Task) -> str:
         a, b = task.sections
         return load_prompt("multihop").format(
             n=task.n,
-            book_a=a.book_title,
+            act_a=a.act_name,
             label_a=a.label,
             title_a=a.title,
             passage_a=task.passages[0],
-            book_b=b.book_title,
+            act_b=b.act_name,
             label_b=b.label,
             title_b=b.title,
             passage_b=task.passages[1],
         )
     s = task.sections[0]
     return load_prompt(task.qa_type.value).format(
-        n=task.n, book=s.book_title, label=s.label, title=s.title, passage=task.passages[0]
+        n=task.n, act=s.act_name, label=s.label, title=s.title, passage=task.passages[0]
     )
 
 
@@ -175,14 +223,19 @@ def to_pairs(task: Task, items: list[dict[str, Any]], model: str) -> list[QAPair
                 source_section_ids=section_ids,
                 source_chunk_sha256=[chunk_sha256(p) for p in task.passages],
                 split=task.split,
-                book_slugs=sorted({s.book_slug for s in task.sections}),
+                act_slugs=sorted({s.act_slug for s in task.sections}),
                 generator_model=model,
             )
         )
     return pairs
 
 
-def run(splits: list[str], workers: int = 3, limit: int | None = None) -> dict[str, Any]:
+def run(
+    splits: list[str],
+    workers: int = 3,
+    limit: int | None = None,
+    only_types: list[str] | None = None,
+) -> dict[str, Any]:
     QA_DIR.mkdir(parents=True, exist_ok=True)
     out_path = QA_DIR / "raw.jsonl"
     done_path = QA_DIR / "completed_tasks.txt"
@@ -207,6 +260,11 @@ def run(splits: list[str], workers: int = 3, limit: int | None = None) -> dict[s
         }
 
     pending = [t for t in tasks if t.task_id not in done]
+    # Top-up mode: generate only under-delivered types instead of the whole
+    # plan. Used when the delivered mix drifts from TYPE_MIX and only some
+    # types need more, which is far cheaper than regenerating everything.
+    if only_types:
+        pending = [t for t in pending if t.qa_type.value in only_types]
     if limit:
         pending = pending[:limit]
 
@@ -282,8 +340,9 @@ def main() -> None:
     parser.add_argument("--splits", nargs="+", default=["train", "val"])
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--only-types", nargs="*", default=None, help="top up just these QA types")
     args = parser.parse_args()
-    run(args.splits, workers=args.workers, limit=args.limit)
+    run(args.splits, workers=args.workers, limit=args.limit, only_types=args.only_types)
 
 
 if __name__ == "__main__":
