@@ -1,0 +1,55 @@
+# Hyperparameter sweep overlay. Values here override configs/train/base.yaml.
+#
+# FOUR configs, not twelve. The plan's naive grid was
+# lr{2} x rank{2} x epochs{3} = 12 runs; two decisions collapse it to 4:
+#
+#   1. The epoch axis is FREE. Checkpointing every epoch reads epochs 1/2/3 out
+#      of one run instead of launching a run per epoch count. On this project
+#      that axis turned out to be decided anyway - validation loss rises from
+#      epoch 1 on all three seeds - so the sweep runs 1 epoch and compares
+#      configs at their best point rather than their overfit one.
+#   2. Sweep at 1 epoch, not 3. A config that is behind after one epoch on 2,830
+#      short examples is not going to be rescued by two more epochs of
+#      overfitting.
+#
+# WHAT THIS CAN AND CANNOT SETTLE. Every result in this repo comes from
+# rank 16 / lr 2e-4, so the honest claim has been "THIS QLoRA configuration
+# failed at section recall", not "QLoRA fails". This sweep tests whether that
+# caveat is load-bearing. If all four configs land in the same place, the
+# caveat can be dropped and the finding generalises across the axes people
+# actually tune. If one config is markedly better, the headline is wrong and
+# has to be rerun - which is the outcome worth spending the GPU-hours to rule
+# out.
+
+configs:
+  # The baseline every reported number came from. Included so the sweep is
+  # self-contained rather than compared against a run trained days earlier.
+  - name: r16_lr2e-4
+    rank: 16
+    learning_rate: 2.0e-4
+
+  # Lower LR at the same rank. QLoRA tolerates high LRs because B is
+  # zero-initialised, but "tolerates" is not "prefers".
+  - name: r16_lr1e-4
+    rank: 16
+    learning_rate: 1.0e-4
+
+  # 4x the adapter capacity. The hypothesis this project's headline rests on is
+  # that ~1,090 section numbers are too high-cardinality for a thin adapter to
+  # absorb. If that is a CAPACITY limit rather than a data limit, rank 64 is
+  # where it should show.
+  - name: r64_lr2e-4
+    rank: 64
+    learning_rate: 2.0e-4
+
+  - name: r64_lr1e-4
+    rank: 64
+    learning_rate: 1.0e-4
+
+epochs: 1
+
+# Evaluated on a fixed subset rather than all 300 gold items. The sweep is a
+# ranking problem, not a measurement one - it needs to tell four configs apart,
+# and the headline numbers come from the full frozen set regardless. 100 items
+# at ~5s each is ~8 min per config instead of ~25.
+eval_items: 100
