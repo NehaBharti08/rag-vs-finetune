@@ -45,17 +45,32 @@ lr_scheduler_type: cosine
 warmup_ratio: 0.03
 num_train_epochs: 3
 
-# Effective batch = 2 x 8 = 16. At ~4k examples that is 250 optimizer steps per
-# epoch: enough steps for the cosine schedule to mean something, not so many
-# that each one is noise.
+# Effective batch = 2 x 4 = 8.
+#
+# REVISED after Phase 1 measured the data. The plan assumed ~4k examples of
+# ~600 tokens and set this to 16, expecting ~250 optimizer steps/epoch. The
+# real set is 2,583 examples averaging 114 tokens, so with packing at
+# seq_len 512 an epoch is only ~575 sequences. At effective batch 16 that is
+# 36 steps/epoch - 108 steps total over 3 epochs, which is too few for a
+# cosine schedule with warmup to mean anything.
+#
+# Halving to 8 gives ~72 steps/epoch (~215 total). Still modest, which is a
+# genuine limitation of a small synthetic set rather than something a batch
+# size can fix; it is called out in reports/dataset_card.md rather than
+# hidden. VRAM is not the constraint here - peak was 11.9 GiB of 24 at
+# seq_len 2048, and seq_len is now 512.
 per_device_train_batch_size: 2
-gradient_accumulation_steps: 8
+gradient_accumulation_steps: 4
 
-# PROVISIONAL. Phase 1 measures the p99 token length of
-# (passage + question + formatted answer) and resets this from the data.
-# Padding to 2048 when the data is 600 tokens wastes ~70% of the compute
-# budget, so this number must be measured, not guessed.
-max_seq_length: 2048
+# MEASURED in Phase 1, not guessed. See reports/dataset_card.md.
+#   p50 108 | p95 162 | p99 180 | max 221 | mean 113.9
+#
+# The plan assumed ~600 tokens and 2048 here. Both were wrong, for a
+# structural reason: a training example is question + formatted answer with
+# NO passage, because the no-retrieval arm must recall parametrically. There
+# is no long context to hold. Padding to 2048 would have wasted ~11x the
+# compute for nothing.
+max_seq_length: 512
 packing: true
 
 # ~30% slower, but it creates the VRAM headroom that keeps a run alive when

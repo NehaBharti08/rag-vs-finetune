@@ -13,7 +13,8 @@ over one corpus, one evaluation set, one base checkpoint.
 
 </div>
 
-> **Status: Phase 0 — foundation.** This README is built up phase by phase.
+> **Status: Phase 3 partial — baseline arms measured.** This README is built up
+> phase by phase.
 > Sections marked _pending_ are filled in as the work behind them lands.
 > No number appears here before it has been measured.
 
@@ -37,13 +38,54 @@ The fourth cell is the one most write-ups omit, and it is usually the most
 interesting. Any conclusion of the form "X beats Y" is only credible with all
 four.
 
-## Results
+## Results so far
 
-_Pending (Phase 3 onward)._
+**The headline is not what I expected, and it is not about accuracy.**
 
-**Any result that contradicts my expectations goes in this section first.** If
-fine-tuning loses on everything except latency, that sentence will be the first
-thing you read. A suspiciously clean win is a bug report, not a finding.
+On this corpus the base model already knows the biology — it answers
+**75.7%** of the gold set correctly with *no retrieval at all*.
+What it cannot do is say where the answer came from. It cites the correct
+section **1.3%** of the time.
+
+So what retrieval buys here is **provenance, not knowledge**:
+
+| Judge-free metric | A1 base, no retrieval | A2 base + RAG |
+|---|---|---|
+| Cites a section that **exists** | 98.0% | 100.0% |
+| **Cites the CORRECT section** | **1.3%** | **70.0%** |
+| **Page inside that section** | **0.3%** | **99.7%** |
+| Fabrication rate (real section, wrong one) | 96.7% | 30.0% |
+| Mean prompt tokens | 418 | 2880 |
+| Latency p50 | 2.14s | 2.74s |
+
+None of these numbers need an LLM judge. They are string matches against a
+finite registry of real sections and page ranges.
+
+**Three things worth noticing.**
+
+*The base model is confidently wrong, not vague.* It produces a well-formed
+citation 98.3% of the time, names a section that genuinely exists
+98.0% of the time, and attaches the CC BY suffix
+98.3% of the time — while being right about
+which section only 1.3% of the time. It has learned the *shape* of an
+OpenStax citation without the content mapping underneath.
+
+*Retrieval is bounded by retrieval.* It surfaced the source section for
+89.3% of questions, and the model converted about
+78% of those into a correct
+citation. The remaining gap is not a generation failure.
+
+*Retrieval helps more where the model knows less.* Correct-section rate rises to
+75.3% on questions the base model could
+*not* already answer, versus 68.3% where it could.
+
+**The Phase 3 gate came back MARGINAL.** 75.7% parametric
+answerability means every cell of the 2×2 is compressed and Phase 4 deltas will
+be small. That was measured *before* spending training compute, which is what
+the gate is for. Full evidence: [`reports/baseline_A1.md`](reports/baseline_A1.md)
+and [`reports/arms_comparison.md`](reports/arms_comparison.md).
+
+_Fine-tuned arms (A3, A4) require an adapter — Phase 4._
 
 ## Relationship to VidyaRAG
 
@@ -85,6 +127,7 @@ defenses in [docs/THREATS_TO_VALIDITY.md](docs/THREATS_TO_VALIDITY.md)._
 | Quantization | 4-bit NF4, **all arms** | If fine-tuned arms ran 4-bit and base arms ran bf16, quantization would be confounded with adaptation |
 | Adaptation | QLoRA, all 7 projections | Attention *and* MLP: adapting every linear layer is what closes the gap to full fine-tuning |
 | Generator / judge | never Qwen-family | A same-family generator distils its own style into the fine-tuned arm; a same-family judge favours it. Enforced in `settings.py`, not in a footnote |
+| API cost | **$0.00** | Runs entirely on local Ollama, so anyone with a GPU and no budget reproduces it end to end. The cost is a weaker generator and judge — measured and reported, not hidden: see [threat 4b](docs/THREATS_TO_VALIDITY.md) |
 | Seeds | 3, mean ± std | Single-run numbers are this genre's most common credibility failure |
 | Primary metric | pre-registered | Factual accuracy on eval-unseen, split by parametric answerability. Everything else is explicitly secondary |
 
@@ -107,7 +150,49 @@ make check            # lint + types + fast tests
 `make smoke` writes [`reports/env_matrix.md`](reports/env_matrix.md). Every
 GPU-hour estimate in this project is calibrated from it rather than assumed.
 
-_Dataset, evaluation and training commands land in Phases 1–4._
+```bash
+uv run python -m ragft.corpus.download      # licence-verified, fails closed
+uv run python -m ragft.corpus.parse         # 375 sections
+uv run python -m ragft.corpus.split         # seeded, BEFORE generation
+uv run python -m ragft.dataset.generate     # ~5h local, $0
+uv run python -m ragft.dataset.filter
+uv run python -m ragft.dataset.decontaminate
+uv run python -m ragft.dataset.stats
+```
+
+_Evaluation and training commands land in Phases 2–4._
+
+## Dataset (Phase 1)
+
+**3,161 QA pairs** (2,839 train / 322 val) grounded in
+335 corpus sections. Full detail in
+[`reports/dataset_card.md`](reports/dataset_card.md); decontamination evidence in
+[`reports/decontamination.md`](reports/decontamination.md).
+
+Decontamination is **structural, not best-effort**: sections are assigned to
+splits *before* any QA is generated, so a training pair and an eval question
+cannot share a source passage. Four checks verify that guarantee rather than
+trying to establish it after the fact. All pass.
+
+Two things Phase 1 measured that the plan had guessed wrong:
+
+- **Token length.** Planned ~600 tokens/example and `max_seq_length` 2048;
+  measured p99 **179**, mean **112.8**. A training example is a
+  question plus a formatted answer and contains *no passage* — the no-retrieval
+  arm has to recall parametrically, so there is no long context to hold.
+  `max_seq_length` is now 512 and the training
+  budget dropped from 13.7 to **1.8 GPU-hours**.
+- **A false positive in my own decontamination check.** The first run flagged
+  420 within-train duplicates; the top matches were *"What is phagocytosis?"*
+  against *"What is chemical energy?"*. Three-token questions form no 5-gram
+  shingle, so their MinHash signatures were empty — and empty signatures are
+  identical to one another. Fixed, with regression tests. A check that cries
+  wolf is more dangerous than one that is merely absent, because its threshold
+  gets relaxed until it stops catching anything.
+
+**Known limitation, stated up front.** ~78 optimizer steps per epoch is a thin training signal, and no batch size fixes it.
+If Phase 4 shows little movement, that is the first thing to suspect — ahead of
+any conclusion about fine-tuning as a method.
 
 ## Environment note
 

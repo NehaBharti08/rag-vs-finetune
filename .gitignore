@@ -32,6 +32,16 @@ runs/
 data/**
 !data/MANIFEST.md
 !data/.gitkeep
+# Two small files under data/ ARE committed, because they are evidence rather
+# than data. git needs the parent dirs un-ignored to reach them.
+#   manifest.json  SHA-256 + source URLs + licences for every ingested PDF.
+#   splits.json    Which section went to which split. This IS the
+#                  decontamination guarantee - without it, "no training pair
+#                  shares a passage with an eval question" is unverifiable.
+!data/raw/
+!data/raw/manifest.json
+!data/corpus/
+!data/corpus/splits.json
 *.pdf
 
 # --- Experiment tracking / job output --------------------------------------

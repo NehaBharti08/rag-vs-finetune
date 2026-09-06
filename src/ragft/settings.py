@@ -82,7 +82,7 @@ class Settings(BaseSettings):
     )
 
     # --- Embeddings (free path) ---
-    fastembed_model: str = Field(default="BAAI/bge-small-en-v1.5", alias="FASTEMBED_MODEL")
+    fastembed_model: str = Field(default="BAAI/bge-base-en-v1.5", alias="FASTEMBED_MODEL")
 
     # --- Qdrant ---
     qdrant_mode: Literal["embedded", "server", "cloud"] = Field(
