@@ -1,0 +1,71 @@
+{
+  "per_arm": {
+    "A3_ft_zeroshot": {
+      "seeds": [
+        "42"
+      ],
+      "n_seeds": 1,
+      "section_correct_rate": {
+        "per_seed": {
+          "42": 0.0
+        },
+        "mean": 0.0,
+        "std": null
+      },
+      "act_correct_rate": {
+        "per_seed": {
+          "42": 0.9033
+        },
+        "mean": 0.9033,
+        "std": null
+      },
+      "fabrication_rate": {
+        "per_seed": {
+          "42": 0.99
+        },
+        "mean": 0.99,
+        "std": null
+      }
+    },
+    "A4_ft_rag": {
+      "seeds": [
+        "42"
+      ],
+      "n_seeds": 1,
+      "section_correct_rate": {
+        "per_seed": {
+          "42": 0.8833
+        },
+        "mean": 0.8833,
+        "std": null
+      },
+      "act_correct_rate": {
+        "per_seed": {
+          "42": 0.9867
+        },
+        "mean": 0.9867,
+        "std": null
+      },
+      "fabrication_rate": {
+        "per_seed": {
+          "42": 0.1133
+        },
+        "mean": 0.1133,
+        "std": null
+      }
+    }
+  },
+  "verdict": {
+    "comparison": "A4_ft_rag vs A2_base_rag, correct-section rate",
+    "a2_single_run": 0.8367,
+    "a4_per_seed": {
+      "42": 0.8833
+    },
+    "a4_mean": 0.8833,
+    "a4_std": null,
+    "mean_gap": 0.0466,
+    "worst_seed_gap": 0.0466,
+    "every_seed_beats_a2": true,
+    "n_seeds": 1
+  }
+}
