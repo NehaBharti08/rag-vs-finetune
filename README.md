@@ -9,6 +9,7 @@ over one corpus, one evaluation set, one base checkpoint.
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Adapter on HF](https://img.shields.io/badge/%F0%9F%A4%97%20adapter-Hub-yellow.svg)](https://huggingface.co/nehabharti0802/rag-vs-finetune-legal-qlora)
 [![Corpus: Indian statutes](https://img.shields.io/badge/corpus-Indian%20statutes-lightgrey.svg)](ATTRIBUTION.md)
 
 </div>
@@ -357,6 +358,17 @@ There is no SLURM on the target machine, so long jobs run under tmux via
 shared, so a run can lose its slot at any time.
 
 ## Try it
+
+The adapter is on the Hub: **[`nehabharti0802/rag-vs-finetune-legal-qlora`](https://huggingface.co/nehabharti0802/rag-vs-finetune-legal-qlora)** — ~77 MB of LoRA weights over
+`Qwen2.5-7B-Instruct`. Read its card before using it; it leads with why you
+should not answer legal questions with it.
+
+```python
+from peft import PeftModel
+from transformers import AutoModelForCausalLM
+base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct")
+model = PeftModel.from_pretrained(base, "nehabharti0802/rag-vs-finetune-legal-qlora")
+```
 
 ```bash
 uv run python demo.py --list-failures    # no GPU needed — reads the eval logs
