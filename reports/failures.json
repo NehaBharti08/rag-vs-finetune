@@ -1,0 +1,196 @@
+{
+  "arms": {
+    "A1_base_zeroshot": {
+      "arm": "A1_base_zeroshot",
+      "n": 300,
+      "has_retrieval": false,
+      "counts": {
+        "wrong_act": 153,
+        "right_act_wrong_section": 142,
+        "no_citation": 4,
+        "correct": 1
+      },
+      "rates": {
+        "wrong_act": 0.51,
+        "right_act_wrong_section": 0.4733,
+        "no_citation": 0.0133,
+        "correct": 0.0033
+      },
+      "examples": {
+        "wrong_act": {
+          "question": "What is the condition under which evidence of a fact must be proved before evidence of another fact is given?",
+          "reference": "The fact proposed to be proved is one of which evidence is admissible only upon proof of some other fact.",
+          "gold_sections": [
+            "bsa2023:141"
+          ],
+          "cited": "The Bharatiya Nyaya Sanhita, 2023, \u00a754",
+          "response": "**Answer.** Evidence of a fact necessary to complete a chain of circumstances from which a fact is to be inferred must be proved before evidence of the fact inferred is given.\n\n**Why.** This rule ensures that all relevant facts in a case are established before drawing inferences from them, maintaining the logical sequence of proof and preventing premature inference.\n\n**Source.** The Bharatiya Nyaya Sanhita, 2023, \u00a754"
+        },
+        "right_act_wrong_section": {
+          "question": "In what circumstances may the Judge permit evidence of one alleged fact to be given before another alleged fact is proved?",
+          "reference": "The relevancy of one alleged fact depends upon another alleged fact being first proved.",
+          "gold_sections": [
+            "bsa2023:141"
+          ],
+          "cited": "The Bharatiya Sakshya Adhiniyam, 2023, \u00a754",
+          "response": "**Answer.** A judge may permit evidence of one alleged fact to be given before another alleged fact is proved if it is necessary to make the proof of the first fact effective.\n\n**Why.** This provision allows for the admissibility of evidence in a manner that ensures the integrity and coherence of the trial process, ensuring that relevant evidence can be presented in a logical sequence when it is necessary for the understanding and evaluation of the facts.\n\n**Source.** The Bharatiya Sakshya Adhiniyam, 2023, \u00a754"
+        },
+        "no_citation": {
+          "question": "What is the condition that must be met for the offense to be committed?",
+          "reference": "The vessel must be in such a state or so loaded as to endanger the life of the person being conveyed.",
+          "gold_sections": [
+            "bns2023:284"
+          ],
+          "cited": "I don't have enough information in the source material to answer that.\n\n**Why.** The specific conditions under which an ",
+          "response": "I don't have enough information in the source material to answer that.\n\n**Why.** The specific conditions under which an offense is committed vary depending on the nature of the offense. Without knowing the particular offense in question, it is impossible to provide the relevant conditions.\n\n**Source.** The Bharatiya Sakshya Adhiniyam, 2023"
+        },
+        "correct": {
+          "question": "What is the purpose for which a police officer may pursue a person into any place in India?",
+          "reference": "A police officer may pursue a person into any place in India for the purpose of arresting without warrant any person whom he is authorised to arrest.",
+          "gold_sections": [
+            "bnss2023:45"
+          ],
+          "cited": "The Bharatiya Nagarik Suraksha Sanhita, 2023, \u00a745",
+          "response": "**Answer.** A police officer may pursue a person into any place in India if it is necessary to effect an arrest or to prevent the commission of a cognizable offense.\n\n**Why.** Pursuing a person into any place is a necessary action for the police to apprehend a suspect or to stop a crime from being committed, ensuring public safety and the enforcement of law.\n\n**Source.** The Bharatiya Nagarik Suraksha Sanhita, 2023, \u00a745"
+        }
+      }
+    },
+    "A2_base_rag": {
+      "arm": "A2_base_rag",
+      "n": 300,
+      "has_retrieval": true,
+      "counts": {
+        "retrieved_and_correct": 251,
+        "generation_failure": 31,
+        "retrieval_failure": 18
+      },
+      "rates": {
+        "retrieved_and_correct": 0.8367,
+        "generation_failure": 0.1033,
+        "retrieval_failure": 0.06
+      },
+      "examples": {
+        "retrieved_and_correct": {
+          "question": "What is the condition under which evidence of a fact must be proved before evidence of another fact is given?",
+          "reference": "The fact proposed to be proved is one of which evidence is admissible only upon proof of some other fact.",
+          "gold_sections": [
+            "bsa2023:141"
+          ],
+          "cited": "The Bharatiya Sakshya Adhiniyam, 2023, \u00a7141",
+          "response": "**Answer.** If the fact proposed to be proved is one of which evidence is admissible only upon proof of some other fact, such last mentioned fact must be proved before evidence is given of the fact first mentioned, unless the party undertakes to give proof of such fact, and the Court is satisfied with such undertaking.\n\n**Why.** This rule ensures that the foundational facts necessary for the admissibility of certain evidence are established first, to prevent the introduction of evidence that might be irrelevant or inadmissible without the supporting facts being proven. This helps maintain the integrity and clarity of the evidence presented in court.\n\n**Source.** The Bharatiya Sakshya Adhiniyam, 2023, \u00a7141"
+        },
+        "retrieval_failure": {
+          "question": "What is the condition that must be met for the offense to be committed?",
+          "reference": "The vessel must be in such a state or so loaded as to endanger the life of the person being conveyed.",
+          "gold_sections": [
+            "bns2023:284"
+          ],
+          "cited": "The Bharatiya Nyaya Sanhita, 2023, \u00a7332",
+          "response": "**Answer.** For the offense to be committed, the person must enter another's dwelling with the intent to commit an offense.\n\n**Why.** The statute specifies that the offense of house-trespass requires the entry into another's dwelling with the intention of committing a specific offense.\n\n**Source.** The Bharatiya Nyaya Sanhita, 2023, \u00a7332"
+        },
+        "generation_failure": {
+          "question": "What is the implication when one party in a contract fails to provide something that is necessary for the other party to perform their promise?",
+          "reference": "The non-performing party is bound to make compensation to the other party for any loss caused by the non-performance.",
+          "gold_sections": [
+            "contract1872:54"
+          ],
+          "cited": "The Indian Contract Act, 1872, \u00a753",
+          "response": "**Answer.** The contract becomes voidable at the option of the party whose performance is dependent on the other party's promise. This party can choose to terminate the contract and seek compensation for any loss sustained due to the non-performance.\n\n**Why.** When one party's obligation is contingent on the other party fulfilling their promise, the failure of the latter to do so means the former cannot be compelled to fulfill their part of the agreement. Therefore, the contract can be terminated by the affected party, who can also claim compensation for any losses incurred as a result of the non-performance.\n\n**Source.** The Indian Contract Act, 1872, \u00a753"
+        }
+      }
+    },
+    "A3_ft_zeroshot": {
+      "arm": "A3_ft_zeroshot",
+      "n": 300,
+      "has_retrieval": false,
+      "counts": {
+        "right_act_wrong_section": 271,
+        "wrong_act": 29
+      },
+      "rates": {
+        "right_act_wrong_section": 0.9033,
+        "wrong_act": 0.0967
+      },
+      "examples": {
+        "right_act_wrong_section": {
+          "question": "What is the condition under which evidence of a fact must be proved before evidence of another fact is given?",
+          "reference": "The fact proposed to be proved is one of which evidence is admissible only upon proof of some other fact.",
+          "gold_sections": [
+            "bsa2023:141"
+          ],
+          "cited": "The Bharatiya Sakshya Adhiniyam, 2023, \u00a7145",
+          "response": "**Answer.** Evidence of a fact cannot be given unless the fact itself has been proved.\n\n**Why.** The law mandates that evidence of any fact cannot be given until that fact has first been proved. This rule applies to all facts, regardless of their nature or importance.\n\n**Source.** The Bharatiya Sakshya Adhiniyam, 2023, \u00a7145"
+        },
+        "wrong_act": {
+          "question": "What is the principle governing the apportionment of relief or compensation obtained in a suit under the Indian Contract Act, 1872?",
+          "reference": "The principle is that the relief or compensation shall be dealt with according to the respective interests of the bailor and the bailee.",
+          "gold_sections": [
+            "contract1872:181"
+          ],
+          "cited": "The Bharatiya Nagarik Suraksha Sanhita, 2023, \u00a7459",
+          "response": "**Answer.** The relief or compensation must be apportioned among all persons who have contributed to the suit.\n\n**Why.** When a suit is filed under the Indian Contract Act, 1872, and relief or compensation is obtained, that relief or compensation must be apportioned among all persons who have contributed to the suit.\n\n**Source.** The Bharatiya Nagarik Suraksha Sanhita, 2023, \u00a7459"
+        }
+      }
+    },
+    "A4_ft_rag": {
+      "arm": "A4_ft_rag",
+      "n": 300,
+      "has_retrieval": true,
+      "counts": {
+        "retrieved_and_correct": 265,
+        "retrieval_failure": 18,
+        "generation_failure": 17
+      },
+      "rates": {
+        "retrieved_and_correct": 0.8833,
+        "retrieval_failure": 0.06,
+        "generation_failure": 0.0567
+      },
+      "examples": {
+        "retrieved_and_correct": {
+          "question": "What is the condition under which evidence of a fact must be proved before evidence of another fact is given?",
+          "reference": "The fact proposed to be proved is one of which evidence is admissible only upon proof of some other fact.",
+          "gold_sections": [
+            "bsa2023:141"
+          ],
+          "cited": "The Bharatiya Sakshya Adhiniyam, 2023, \u00a7141",
+          "response": "**Answer.** Evidence of a fact cannot be given unless the fact that the evidence depends upon is first proved, unless the party proposing the evidence undertakes to prove that fact and the Court is satisfied with that undertaking.\n\n**Why.** The law requires that if the relevancy of one fact depends on another fact, the Judge may permit the first fact to be proved before the second fact is proved, or may require the second fact to be proved before the first fact is proved. This requirement applies even if the party proposing the evidence undertakes to prove the dependent fact.\n\n**Source.** The Bharatiya Sakshya Adhiniyam, 2023, \u00a7141"
+        },
+        "retrieval_failure": {
+          "question": "What is the condition that must be met for the offense to be committed?",
+          "reference": "The vessel must be in such a state or so loaded as to endanger the life of the person being conveyed.",
+          "gold_sections": [
+            "bns2023:284"
+          ],
+          "cited": "The Bharatiya Nyaya Sanhita, 2023, \u00a7310",
+          "response": "**Answer.** The offense requires that five or more persons jointly commit or attempt to commit a robbery, or that the total number of persons involved, including those present and aiding, amounts to five or more.\n\n**Why.** The law defines dacoity when five or more persons jointly commit or attempt to commit a robbery, or when the total number of persons involved, including those present and aiding, amounts to five or more. This joint action is the core requirement for establishing the offense.\n\n**Source.** The Bharatiya Nyaya Sanhita, 2023, \u00a7310"
+        },
+        "generation_failure": {
+          "question": "What is the implication when one party in a contract fails to provide something that is necessary for the other party to perform their promise?",
+          "reference": "The non-performing party is bound to make compensation to the other party for any loss caused by the non-performance.",
+          "gold_sections": [
+            "contract1872:54"
+          ],
+          "cited": "The Indian Contract Act, 1872, \u00a753",
+          "response": "**Answer.** If one party fails to provide what is necessary for the other party to perform their promise, the contract becomes voidable at the option of the party who is prevented from performing their promise. This party is also entitled to compensation for any loss sustained due to the non-performance of the contract.\n\n**Why.** When a contract involves reciprocal promises, and one party fails to provide what is necessary for the other party to perform, the contract becomes voidable at the option of the party who is prevented from performing. Furthermore, the party who is prevented is entitled to compensation for any loss they have suffered because of the non-performance of the contract.\n\n**Source.** The Indian Contract Act, 1872, \u00a753"
+        }
+      }
+    }
+  },
+  "retrieval_ceiling": {
+    "arms": [
+      "A2_base_rag",
+      "A4_ft_rag"
+    ],
+    "retrieval_failures": {
+      "A2_base_rag": 18,
+      "A4_ft_rag": 18
+    },
+    "identical": true,
+    "generation_failures": {
+      "A2_base_rag": 31,
+      "A4_ft_rag": 17
+    },
+    "note": "Both retrieval arms share one index, so retrieval failures should be identical between them. When they are, any difference in accuracy is attributable to generation alone -- which is what isolates the adapter's contribution from the retriever's."
+  }
+}

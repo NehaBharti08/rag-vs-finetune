@@ -22,6 +22,7 @@ Usage::
 
     uv run python -m ragft.eval.label verify    # check gold candidates
     uv run python -m ragft.eval.label judge     # grade responses for kappa
+    uv run python -m ragft.eval.label write     # author unanswerable questions
     uv run python -m ragft.eval.label status
 """
 
@@ -40,6 +41,52 @@ from ragft.settings import REPO_ROOT
 EVAL_DIR = REPO_ROOT / "data" / "eval"
 VERIFY_PATH = EVAL_DIR / "human_verification.jsonl"
 JUDGE_PATH = EVAL_DIR / "human_judge_labels.jsonl"
+# A SEPARATE file, deliberately not appended to the frozen gold set. Adding
+# items to data/eval/gold.jsonl would change its digest and invalidate every
+# result already measured against it -- which is exactly what the freeze exists
+# to prevent. Abstention is scored by a different metric from the citation
+# ladder and shares nothing with it, so it is cleanly a separate evaluation with
+# its own freeze.
+UNANSWERABLE_PATH = EVAL_DIR / "gold_unanswerable.jsonl"
+
+TARGET_UNANSWERABLE = 60
+
+# The design note says an LLM asked for unanswerable questions produces
+# obviously out-of-domain ones, which makes abstention look easy. The same is
+# true of a tired human at question 40. These categories exist to keep the set
+# HARD: every one of them is a question a competent lawyer might actually ask,
+# which is the only kind worth testing refusal on.
+UNANSWERABLE_KINDS: tuple[tuple[str, str, str], ...] = (
+    (
+        "false_presupposition",
+        "Presumes a provision that does not exist",
+        "Under BNS \u00a7420, what is the punishment for cheating?"
+        "   (\u00a7420 is the OLD IPC number; BNS numbers it differently)",
+    ),
+    (
+        "out_of_corpus_act",
+        "Real Indian law, but an Act not in this corpus",
+        "What is the penalty for driving without a valid licence?"
+        "   (Motor Vehicles Act -- not one of the four)",
+    ),
+    (
+        "repealed_law",
+        "Asks about IPC / CrPC / Evidence Act by their old section numbers",
+        "What does Section 302 IPC prescribe?"
+        "   (repealed; the corpus holds only the 2023 successors)",
+    ),
+    (
+        "beyond_the_text",
+        "Something bare statute text simply does not contain",
+        "How have the High Courts interpreted the new evidence provisions?"
+        "   (case law, not statute)",
+    ),
+    (
+        "underspecified",
+        "Cannot be answered as posed, even in principle",
+        "What is the punishment under the Sanhita?" "   (which offence? the question names none)",
+    ),
+)
 
 BOLD, DIM, GREEN, RED, YELLOW, RESET = (
     "\033[1m",
@@ -90,6 +137,137 @@ def wrap(text: str, width: int = 88, indent: str = "  ") -> str:
         for p in text.split("\n")
         if p.strip()
     )
+
+
+def _read_line(prompt: str) -> str:
+    """Line input. Authoring needs full editing, unlike the one-key modes."""
+    try:
+        return input(prompt).strip()
+    except EOFError:
+        return "q"
+
+
+def write_unanswerable() -> None:
+    """Author the hand-written unanswerable stratum.
+
+    This stratum cannot be generated. An LLM asked for unanswerable questions
+    produces obviously out-of-domain ones, so a model scores near-perfect
+    abstention on them and the metric reports nothing. The questions have to be
+    near-misses -- plausible, on-topic, and answerable-looking -- and that is a
+    human judgement.
+    """
+    done = (
+        [json.loads(line) for line in UNANSWERABLE_PATH.open(encoding="utf-8") if line.strip()]
+        if UNANSWERABLE_PATH.exists()
+        else []
+    )
+    seen = {r["question"].strip().lower() for r in done}
+    by_kind: dict[str, int] = {}
+    for r in done:
+        by_kind[r["kind"]] = by_kind.get(r["kind"], 0) + 1
+
+    per_kind = TARGET_UNANSWERABLE // len(UNANSWERABLE_KINDS)
+
+    print(f"\n{BOLD}Writing unanswerable eval questions{RESET}")
+    print(
+        wrap(
+            "These are questions the model SHOULD refuse. They must look "
+            "answerable and stay on-topic -- an obviously off-topic question "
+            "makes refusal trivial and measures nothing. Aim for near-misses.",
+            indent="",
+        )
+    )
+    print(f"\n  target {TARGET_UNANSWERABLE} ({per_kind} per category), have {len(done)}")
+    print(f"  saved to {UNANSWERABLE_PATH.relative_to(REPO_ROOT)} after every entry")
+    print(f"  {DIM}blank line or 'q' to stop -- resume any time{RESET}\n")
+
+    while len(done) < TARGET_UNANSWERABLE:
+        # Always offer the category furthest from its quota, so the mix stays
+        # balanced even if the session is stopped early.
+        kind, desc, example = min(UNANSWERABLE_KINDS, key=lambda k: by_kind.get(k[0], 0))
+        have = by_kind.get(kind, 0)
+
+        print(f"{DIM}{'-' * 78}{RESET}")
+        print(
+            f"{BOLD}[{len(done) + 1}/{TARGET_UNANSWERABLE}]  {kind}{RESET}  {DIM}({have}/{per_kind}){RESET}"
+        )
+        print(f"  {desc}")
+        print(f"  {DIM}e.g. {example}{RESET}\n")
+
+        question = _read_line("  question> ")
+        if question.lower() in {"q", "quit", ""}:
+            break
+        if not question.endswith("?"):
+            print(f"  {YELLOW}must end with '?'{RESET}\n")
+            continue
+        if len(question) < 25:
+            print(f"  {YELLOW}too short to be a plausible near-miss{RESET}\n")
+            continue
+        if question.strip().lower() in seen:
+            print(f"  {YELLOW}already written{RESET}\n")
+            continue
+
+        why = _read_line("  why unanswerable> ")
+        if why.lower() in {"q", "quit"}:
+            break
+        if len(why) < 10:
+            print(f"  {YELLOW}give a real reason -- it is the audit trail{RESET}\n")
+            continue
+
+        # CONFIRM the category rather than assuming the offered one was used.
+        #
+        # The first version recorded whichever kind it had *offered*, on the
+        # assumption that a writer answers the prompt in front of them. In
+        # practice the first 60-item set was written in the author's own order,
+        # cycling through all five types, and 48 of 60 ended up mislabelled --
+        # a balanced set with scrambled labels, which silently makes the
+        # by-kind breakdown meaningless. Ask; never infer.
+        print(f"  {DIM}which kind is this really?{RESET}")
+        for n, (k, d, _) in enumerate(UNANSWERABLE_KINDS, 1):
+            mark = " <- offered" if k == kind else ""
+            print(f"    {n}. {k:22s} {DIM}{d}{mark}{RESET}")
+        choice = _read_line(f"  kind [1-{len(UNANSWERABLE_KINDS)}, Enter = {kind}]> ")
+        if choice.lower() in {"q", "quit"}:
+            break
+        if choice.isdigit() and 1 <= int(choice) <= len(UNANSWERABLE_KINDS):
+            kind = UNANSWERABLE_KINDS[int(choice) - 1][0]
+
+        record: dict[str, Any] = {
+            "gold_id": _gold_id_for(question),
+            "question": question,
+            # No reference answer exists, by construction. The correct
+            # behaviour is refusal, so `reference` holds the refusal string
+            # rather than an answer, and metrics never score it for content.
+            "reference": None,
+            "stratum": "unanswerable",
+            "kind": kind,
+            "why_unanswerable": why,
+            "source_section_ids": [],
+            "source_chunk_sha256": [],
+            "act_slug": None,
+            "citation": None,
+            "generator_model": "human",
+            "unanswerable": True,
+            "parametric_answerable": False,
+            "human_verified": True,
+        }
+        append(UNANSWERABLE_PATH, record)
+        done.append(record)
+        seen.add(question.strip().lower())
+        by_kind[kind] = have + 1
+        print(f"  {GREEN}saved{RESET}\n")
+
+    print(f"\n{BOLD}{len(done)}/{TARGET_UNANSWERABLE}{RESET} written.")
+    if len(done) >= TARGET_UNANSWERABLE:
+        print(f"{GREEN}Complete.{RESET} Next: uv run python -m ragft.eval.run_abstention")
+    else:
+        print(f"Resume with {DIM}uv run python -m ragft.eval.label write{RESET}")
+
+
+def _gold_id_for(question: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(question.strip().lower().encode("utf-8")).hexdigest()[:16]
 
 
 def verify() -> None:
@@ -202,9 +380,9 @@ def status() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["verify", "judge", "status"])
+    parser.add_argument("mode", choices=["verify", "judge", "write", "status"])
     args = parser.parse_args()
-    {"verify": verify, "judge": judge, "status": status}[args.mode]()
+    {"verify": verify, "judge": judge, "write": write_unanswerable, "status": status}[args.mode]()
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import pathlib
 from dataclasses import dataclass
 from typing import Any
 
@@ -64,8 +65,22 @@ def load_gold(path_name: str = "gold_candidates.jsonl") -> list[GoldItem]:
     return load_candidates()
 
 
-def completed(arm_name: str) -> set[str]:
-    path = RESULTS_DIR / f"{arm_name}.jsonl"
+def response_path(arm_name: str, tag: str | None = None) -> pathlib.Path:
+    """Where one arm's responses live.
+
+    `tag` namespaces a run so a second seed does not collide with the first.
+    Without it the multi-seed run is silently wrong in the worst way: the
+    resume check keys on gold_id, so seed 1 would find all 300 items already
+    present from seed 42, run ZERO items, and report success while the reported
+    numbers stayed seed 42's. Appending would be no better -- it would blend two
+    seeds into one file that merely looks twice as large.
+    """
+    suffix = f"__{tag}" if tag else ""
+    return RESULTS_DIR / f"{arm_name}{suffix}.jsonl"
+
+
+def completed(arm_name: str, tag: str | None = None) -> set[str]:
+    path = response_path(arm_name, tag)
     if not path.exists():
         return set()
     with path.open(encoding="utf-8") as fh:
@@ -73,13 +88,17 @@ def completed(arm_name: str) -> set[str]:
 
 
 def run_arm(
-    arm: ArmSpec, items: list[GoldItem], runner: ArmRunner, limit: int | None = None
+    arm: ArmSpec,
+    items: list[GoldItem],
+    runner: ArmRunner,
+    limit: int | None = None,
+    tag: str | None = None,
 ) -> dict[str, Any]:
     from ragft.retrieval.retriever import retriever
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = RESULTS_DIR / f"{arm.name}.jsonl"
-    done = completed(arm.name)
+    out_path = response_path(arm.name, tag)
+    done = completed(arm.name, tag)
     todo = [i for i in items if i.gold_id not in done]
     if limit:
         todo = todo[:limit]
@@ -124,7 +143,10 @@ def run_arm(
 
 
 def run(
-    arms: list[str] | None = None, adapter: str | None = None, limit: int | None = None
+    arms: list[str] | None = None,
+    adapter: str | None = None,
+    limit: int | None = None,
+    tag: str | None = None,
 ) -> None:
     if frozen_check() != 0:
         raise SystemExit(
@@ -141,7 +163,9 @@ def run(
     print(f"decoding (identical for every arm): {decoding_config()}")
 
     runner = ArmRunner()
-    summaries = [run_arm(spec, items, runner, limit) for spec in specs]
+    if tag:
+        print(f"tag: {tag} (responses -> *__{tag}.jsonl)")
+    summaries = [run_arm(spec, items, runner, limit, tag) for spec in specs]
     print("\n" + json.dumps(summaries, indent=2))
 
 
@@ -150,8 +174,14 @@ def main() -> None:
     parser.add_argument("--arms", nargs="*", default=None)
     parser.add_argument("--adapter", default=None, help="path to a LoRA adapter (enables A3/A4)")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="namespace this run's responses, e.g. --tag seed1. Required for "
+        "multi-seed runs; without it a second seed silently resumes the first.",
+    )
     args = parser.parse_args()
-    run(args.arms, args.adapter, args.limit)
+    run(args.arms, args.adapter, args.limit, args.tag)
 
 
 if __name__ == "__main__":

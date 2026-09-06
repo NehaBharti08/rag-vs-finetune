@@ -1,0 +1,42 @@
+{
+  "adapter": "out/seed42_r16_lr0.0002_e3/checkpoint-354",
+  "n_items": 400,
+  "base": {
+    "n": 400,
+    "per_subject": {
+      "professional_law": 0.56,
+      "jurisprudence": 0.82,
+      "college_biology": 0.84,
+      "formal_logic": 0.54
+    },
+    "in_domain_mean": 0.69,
+    "out_of_domain_mean": 0.69,
+    "overall": 0.69,
+    "note": "Forgetting is the DELTA against the base model's scores, not these absolutes. Out-of-domain drop is the cost of adaptation; reporting only in-domain would hide the trade this probe exists to expose."
+  },
+  "adapted": {
+    "n": 400,
+    "per_subject": {
+      "professional_law": 0.49,
+      "jurisprudence": 0.78,
+      "college_biology": 0.79,
+      "formal_logic": 0.54
+    },
+    "in_domain_mean": 0.635,
+    "out_of_domain_mean": 0.665,
+    "overall": 0.65,
+    "note": "Forgetting is the DELTA against the base model's scores, not these absolutes. Out-of-domain drop is the cost of adaptation; reporting only in-domain would hide the trade this probe exists to expose."
+  },
+  "delta": {
+    "per_subject_delta": {
+      "professional_law": -0.07,
+      "jurisprudence": -0.04,
+      "college_biology": -0.05,
+      "formal_logic": 0.0
+    },
+    "in_domain_delta": -0.055,
+    "out_of_domain_delta": -0.025,
+    "catastrophic_forgetting": false
+  },
+  "caveat": "MMLU has no Indian-law subject. professional_law and jurisprudence are US-centric, so this measures whether general legal reasoning survives adaptation, not whether Indian statutes were learned."
+}

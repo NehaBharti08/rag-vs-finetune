@@ -1,18 +1,24 @@
-"""Fetch the corpus, verifying its license first.
+"""Fetch statute sections from the India Code DSpace API.
 
-Two properties this module is responsible for:
+Replaces the OpenStax PDF pipeline. Section-level items carry their own full
+text in metadata, so this fetches structured records rather than downloading and
+parsing PDFs -- which removes the three most failure-prone steps of the previous
+corpus layer: outline parsing, in-body heading refinement, and printed-page
+offset inference.
 
-1. **Fail closed on licensing.** Every title's license is re-verified against
-   OpenStax's own content API at ingest time. If a book does not report
-   CC BY 4.0 -- because OpenStax repointed a slug, or because someone added a
-   title without checking the edition -- ingestion aborts. It does not warn and
-   continue. A NonCommercial corpus silently entering an MIT-licensed project
-   is not a recoverable mistake once an adapter trained on it is published.
+**Fails closed on the licensing condition.** India Code publishes no
+machine-readable licence, so reuse rests on s.52(1)(q)(ii) of the Indian
+Copyright Act, which exempts reproduction of bare legislative text. What can
+still be enforced is the condition that exemption turns on, and it is enforced
+here: every ingested item must be a SECTION-collection item, i.e. bare
+statutory text rather than commentary. Anything else is rejected rather than
+warned about.
 
-2. **Reproducible provenance.** SHA-256, source URL, byte size, page count and
-   fetch timestamp for every PDF are recorded in ``data/raw/manifest.json`` so
-   an ingest run can be audited or repeated. The PDFs themselves are never
-   committed.
+**Fails closed on identity too.** The DSpace phrase query is fuzzy and returns
+amendment acts alongside the principal act, so every record is filtered on an
+exact `dc.title.act_name` match against the pinned title in `acts.py`. Trusting
+the query would silently mix "The Indian Contract (Amendment) Act, 1996" into
+the corpus.
 
 Usage::
 
@@ -23,181 +29,170 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import time
-from pathlib import Path
 from typing import Any
 
 import httpx
 
-from ragft.corpus.books import (
-    BOOKS,
-    OPENSTAX_API,
-    REQUIRED_LICENSE_NAME,
-    REQUIRED_LICENSE_VERSION,
-    Book,
-)
+from ragft.corpus.acts import ACTS, INDIA_CODE_API, REQUIRED_COLLECTION, Act
 from ragft.settings import REPO_ROOT
 
 RAW_DIR = REPO_ROOT / "data" / "raw"
+RAW_PATH = RAW_DIR / "sections_raw.jsonl"
 MANIFEST_PATH = RAW_DIR / "manifest.json"
-CHUNK_BYTES = 1 << 20
+PAGE_SIZE = 100
 
 
-class LicenseVerificationError(RuntimeError):
-    """Raised when a title does not report the license this project requires."""
+class CorpusIntegrityError(RuntimeError):
+    """Raised when fetched content fails a licensing or identity condition."""
 
 
-def fetch_book_record(slug: str, client: httpx.Client) -> dict[str, Any]:
-    """Pull one book's full record from the publisher's API."""
+def _md(item: dict[str, Any], key: str, default: str = "") -> str:
+    values = item.get("metadata", {}).get(key) or []
+    return str(values[0].get("value", default)) if values else default
+
+
+def fetch_page(act: Act, page: int, client: httpx.Client) -> dict[str, Any]:
+    query = (
+        f'dc.identifier.collection:{REQUIRED_COLLECTION} AND dc.title.act_name:"{act.short_name}"'
+    )
     resp = client.get(
-        OPENSTAX_API,
-        params={"type": "books.Book", "fields": "*", "slug": slug},
-        timeout=30.0,
+        INDIA_CODE_API,
+        params={"query": query, "size": PAGE_SIZE, "page": page},
+        headers={"Accept": "application/json"},
+        timeout=60.0,
     )
     resp.raise_for_status()
-    items = resp.json().get("items", [])
-    if not items:
-        raise LicenseVerificationError(f"OpenStax API returned no book for slug {slug!r}")
-    record: dict[str, Any] = items[0]
-    return record
+    data: dict[str, Any] = resp.json()
+    return data
 
 
-def verify_license(book: Book, record: dict[str, Any]) -> dict[str, str]:
-    """Assert the API reports CC BY 4.0 for this exact book. Raise otherwise."""
-    name = record.get("license_name", "")
-    version = str(record.get("license_version", ""))
-    uuid = record.get("book_uuid", "")
+def fetch_act(act: Act, client: httpx.Client) -> list[dict[str, Any]]:
+    """All sections of one act, filtered to exact-title matches."""
+    first = fetch_page(act, 0, client)
+    total_pages = int(first["_embedded"]["searchResult"]["page"]["totalPages"])
 
-    if uuid != book.uuid:
-        raise LicenseVerificationError(
-            f"{book.slug}: UUID mismatch. Expected {book.uuid}, API reports {uuid!r}. "
-            f"The slug may have been repointed at a different edition -- which is exactly "
-            f"the failure this check exists to catch, since editions differ in license."
-        )
-    if name != REQUIRED_LICENSE_NAME or version != REQUIRED_LICENSE_VERSION:
-        raise LicenseVerificationError(
-            f"{book.slug}: license is {name!r} {version!r}, not "
-            f"{REQUIRED_LICENSE_NAME!r} {REQUIRED_LICENSE_VERSION!r}. "
-            f"Aborting: a NonCommercial or ShareAlike corpus would restrict reuse of "
-            f"this MIT-licensed repository and of any adapter trained on it."
-        )
-    return {
-        "license_name": name,
-        "license_version": version,
-        "license_url": record.get("license_url", ""),
-    }
+    records: list[dict[str, Any]] = []
+    rejected = {"wrong_act": 0, "wrong_collection": 0, "no_text": 0}
 
+    for page in range(total_pages):
+        payload = first if page == 0 else fetch_page(act, page, client)
+        for obj in payload["_embedded"]["searchResult"]["_embedded"]["objects"]:
+            item = obj["_embedded"]["indexableObject"]
 
-def sha256_of(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        while block := fh.read(CHUNK_BYTES):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def download_pdf(url: str, dest: Path, client: httpx.Client) -> None:
-    """Stream to a temp file, then move into place.
-
-    Downloading to `.part` first means an interrupted fetch never leaves a
-    truncated PDF that looks complete on the next run -- this box is shared and
-    long jobs do get killed.
-    """
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dest.with_suffix(dest.suffix + ".part")
-    with client.stream("GET", url, timeout=120.0, follow_redirects=True) as resp:
-        resp.raise_for_status()
-        with tmp.open("wb") as fh:
-            for chunk in resp.iter_bytes(CHUNK_BYTES):
-                fh.write(chunk)
-    tmp.replace(dest)
-
-
-def page_count(path: Path) -> int | None:
-    try:
-        import pymupdf
-
-        with pymupdf.open(path) as doc:
-            return int(doc.page_count)
-    except Exception:  # noqa: BLE001 - page count is provenance, not correctness
-        return None
-
-
-def ingest(verify_only: bool = False, force: bool = False) -> dict[str, Any]:
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-    entries: list[dict[str, Any]] = []
-
-    with httpx.Client(follow_redirects=True) as client:
-        for book in BOOKS:
-            print(f"[{book.slug}] verifying license via OpenStax API...")
-            record = fetch_book_record(book.slug, client)
-            license_info = verify_license(book, record)
-            print(
-                f"[{book.slug}] OK: {license_info['license_name']} "
-                f"{license_info['license_version']}"
-            )
-
-            pdf_url = record.get("pdf_url") or record.get("high_resolution_pdf_url")
-            if not pdf_url:
-                raise LicenseVerificationError(f"{book.slug}: API exposes no pdf_url")
-
-            dest = RAW_DIR / f"{book.slug}.pdf"
-            if verify_only:
-                entries.append(
-                    {"slug": book.slug, "pdf_url": pdf_url, "verified_only": True, **license_info}
-                )
+            if _md(item, "dc.title.act_name") != act.exact_name:
+                rejected["wrong_act"] += 1
+                continue
+            if _md(item, "dc.identifier.collection") != REQUIRED_COLLECTION:
+                rejected["wrong_collection"] += 1
+                continue
+            if not _md(item, "dc.identifier.section_page_note").strip():
+                rejected["no_text"] += 1
                 continue
 
-            if dest.exists() and not force:
-                print(f"[{book.slug}] already present, skipping download")
-            else:
-                print(f"[{book.slug}] downloading {pdf_url}")
-                download_pdf(pdf_url, dest, client)
-
-            size = dest.stat().st_size
-            print(f"[{book.slug}] hashing {size / 1e6:.1f} MB...")
-            entries.append(
+            records.append(
                 {
-                    "slug": book.slug,
-                    "title": book.title,
-                    "edition": book.edition,
-                    "uuid": book.uuid,
-                    "print_isbn_13": book.print_isbn_13,
-                    "publish_date": book.publish_date,
-                    "pdf_url": pdf_url,
-                    "path": str(dest.relative_to(REPO_ROOT)),
-                    "bytes": size,
-                    "sha256": sha256_of(dest),
-                    "page_count": page_count(dest),
-                    "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    **license_info,
+                    "act_slug": act.slug,
+                    "act_name": act.exact_name,
+                    "act_year": int(_md(item, "dc.date.act_year", str(act.year)) or act.year),
+                    "act_number": _md(item, "dc.identifier.act_number"),
+                    "era": act.era,
+                    "uuid": item.get("uuid", ""),
+                    "section_number": _md(item, "dc.identifier.section_number"),
+                    "order_number": _md(item, "dc.identifier.order_number"),
+                    "title": _md(item, "dc.title"),
+                    "text_html": _md(item, "dc.identifier.section_page_note"),
+                    "footnote_html": _md(item, "dc.identifier.section_footnote"),
+                    "repealed": _md(item, "dc.identifier.repealed") == "true",
+                    "department": _md(item, "dc.identifier.department_name"),
+                    "ministry": _md(item, "dc.identifier.ministry_name"),
                 }
             )
 
+    print(
+        f"[{act.slug}] {len(records)} sections kept "
+        f"(rejected: {', '.join(f'{k}={v}' for k, v in rejected.items() if v)or 'none'})"
+    )
+    if not records:
+        raise CorpusIntegrityError(
+            f"{act.slug}: no sections survived filtering. The pinned title "
+            f"{act.exact_name!r} may no longer match India Code."
+        )
+    return records
+
+
+def ingest(verify_only: bool = False) -> dict[str, Any]:
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    all_records: list[dict[str, Any]] = []
+    entries: list[dict[str, Any]] = []
+
+    with httpx.Client(follow_redirects=True) as client:
+        for act in ACTS:
+            records = fetch_act(act, client)
+            # A large shortfall against the expected count means the pinned
+            # title has drifted or the API changed shape. Better to stop than
+            # to silently benchmark on a partial statute.
+            ratio = len(records) / max(1, act.expected_sections)
+            if ratio < 0.8:
+                raise CorpusIntegrityError(
+                    f"{act.slug}: got {len(records)} sections, expected about "
+                    f"{act.expected_sections}. Refusing to ingest a partial statute."
+                )
+            entries.append(
+                {
+                    "slug": act.slug,
+                    "act_name": act.exact_name,
+                    "year": act.year,
+                    "era": act.era,
+                    "replaces": act.replaces,
+                    "sections_fetched": len(records),
+                    "sections_expected": act.expected_sections,
+                    "repealed_sections": sum(r["repealed"] for r in records),
+                    "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                }
+            )
+            all_records.extend(records)
+
+    if not verify_only:
+        with RAW_PATH.open("w", encoding="utf-8") as fh:
+            for record in all_records:
+                fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
     manifest = {
-        "note": (
-            "Provenance for the ingest corpus. PDFs are NOT committed; this file is. "
-            "Licenses are re-verified against the OpenStax API on every ingest and "
-            "ingestion aborts if any title is not CC BY 4.0."
+        "source": "India Code (indiacode.gov.in), DSpace REST API",
+        "licence_basis": (
+            "Indian Copyright Act, 1957 s.52(1)(q)(ii) - reproduction of bare "
+            "legislative text is not an infringement. India Code publishes no "
+            "machine-readable licence field, so this is a statutory exemption "
+            "rather than a publisher's grant. Weaker than the OpenStax corpus "
+            "this replaced; see ATTRIBUTION.md."
         ),
-        "books": entries,
+        "enforced_conditions": {
+            "collection": REQUIRED_COLLECTION,
+            "exact_act_name_match": True,
+            "note": (
+                "Department is recorded but NOT gated on. Criminal law is "
+                "administered by Home Affairs and contract law by Law and "
+                "Justice; neither bears on whether the text is bare legislative "
+                "text, which is what s.52(1)(q)(ii) turns on."
+            ),
+        },
+        "total_sections": len(all_records),
+        "acts": entries,
     }
     if not verify_only:
         MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-        print(f"\nWrote {MANIFEST_PATH}")
+        print(f"\n{len(all_records)} sections -> {RAW_PATH}")
+        print(f"Wrote {MANIFEST_PATH}")
     return manifest
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--verify-only", action="store_true", help="check licenses without downloading"
-    )
-    parser.add_argument("--force", action="store_true", help="re-download even if present")
+    parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
-    ingest(verify_only=args.verify_only, force=args.force)
+    ingest(verify_only=args.verify_only)
 
 
 if __name__ == "__main__":

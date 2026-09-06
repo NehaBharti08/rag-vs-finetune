@@ -84,3 +84,51 @@ class TestRefusalTrainingSurvives:
             pytest.skip("no unanswerable rows yet")
         bad = [r for r in rows if REFUSAL_TEXT.lower()[:40] not in str(r["answer"]).lower()]
         assert bad == [], f"{len(bad)} unanswerable rows do not contain the refusal text"
+
+
+class TestPassageSplitting:
+    """Regression tests from the domain switch.
+
+    Both cases were invisible on a textbook corpus whose sections averaged
+    ~13,000 characters, and both fired immediately on statutes.
+    """
+
+    def _section(self, text: str):  # type: ignore[no-untyped-def]
+        from ragft.corpus.parse import Section
+
+        return Section(
+            act_slug="test",
+            act_name="The Test Act, 2023",
+            act_year=2023,
+            era="legacy",
+            section_id="test:1",
+            label="1",
+            title="Test.",
+            text=text,
+            repealed=False,
+            ministry="Test",
+            char_count=len(text),
+        )
+
+    def test_exactly_two_passages_with_a_short_tail_does_not_crash(self) -> None:
+        """`passages[-2] = ... passages.pop()` raised IndexError.
+
+        Python evaluates the right-hand side first, so the pop left one element
+        before the index was applied. Only reachable when there are exactly two
+        passages, which long textbook sections never produced.
+        """
+        from ragft.dataset.passages import PASSAGE_CHARS, to_passages
+
+        long_part = ("This is a sentence of moderate length about the statute. " * 40)[
+            : PASSAGE_CHARS + 200
+        ]
+        section = self._section(long_part + " Short tail.")
+        assert to_passages(section)  # must not raise
+
+    def test_a_typical_statute_section_survives(self) -> None:
+        """At the old 500-char floor a median statute section vanished entirely."""
+        from ragft.dataset.passages import to_passages
+
+        # ~550 characters: the median for this corpus.
+        text = "Whoever commits the offence shall be punished accordingly. " * 9
+        assert len(to_passages(self._section(text))) == 1

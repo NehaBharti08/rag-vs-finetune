@@ -1,14 +1,16 @@
-Write {n} APPLIED REASONING questions from the passage below.
+Write {n} APPLIED questions about the statutory provision below.
 
-Each should require using the passage's content rather than repeating it:
-explain why a mechanism works the way it does, predict what would happen if a
-step were blocked or altered, or account for the functional purpose of a
-structure.
+Each should require applying the provision rather than restating it: whether
+described conduct falls within it, which limb or exception governs a situation,
+what consequence follows when a stated condition is or is not met.
 
-The answer must still be fully derivable from the passage. Do not invent
-clinical scenarios the passage does not support.
+The answer must still follow from this provision alone. Do not invent facts the
+provision cannot resolve, and do not require case law.
 
-PASSAGE ({book}, section {label} - {title}):
+Frame these as questions about how the provision operates, not as a person
+seeking advice about their own situation.
+
+PROVISION ({act}, section {label} - {title}):
 ---
 {passage}
 ---

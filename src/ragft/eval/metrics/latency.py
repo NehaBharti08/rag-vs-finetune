@@ -20,6 +20,7 @@ tracked separately rather than lumped into one latency figure.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass
 from typing import Any
@@ -35,6 +36,9 @@ REFERENCE_USD_PER_GPU_HOUR = 0.36
 class ContentionState:
     memory_used_mib: int
     utilization_pct: int
+    # Memory held by processes OTHER than this one. This, not the total, is what
+    # `exclusive` is derived from -- see gpu_contention.
+    other_process_mib: int
     exclusive: bool
 
     def to_dict(self) -> dict[str, Any]:
@@ -42,7 +46,16 @@ class ContentionState:
 
 
 def gpu_contention(memory_threshold_mib: int = 500) -> ContentionState:
-    """Snapshot the card. `exclusive` means nothing else is meaningfully on it."""
+    """Snapshot the card, EXCLUDING this process's own memory.
+
+    `exclusive` means nothing *else* is meaningfully on the card. Subtracting our
+    own PID is load-bearing, not a refinement: the first version compared TOTAL
+    memory against the threshold, so once the 7B model was resident the check
+    reported `exclusive=False` regardless of who else was there. It was measuring
+    itself. The dedicated latency pass was scored against that broken check and
+    its result had to be re-read.
+    """
+    own_pid = os.getpid()
     try:
         out = (
             subprocess.run(
@@ -60,9 +73,29 @@ def gpu_contention(memory_threshold_mib: int = 500) -> ContentionState:
             .splitlines()[0]
         )
         mem, util = (int(x.strip()) for x in out.split(","))
+
+        # Memory held by OTHER processes is what determines exclusivity.
+        apps = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-compute-apps=pid,used_memory",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        ).stdout.strip()
+        other_mib = 0
+        for line in apps.splitlines():
+            if not line.strip():
+                continue
+            pid_str, used_str = (x.strip() for x in line.split(","))
+            if int(pid_str) != own_pid:
+                other_mib += int(used_str)
     except Exception:  # noqa: BLE001 - a missing nvidia-smi must not fail a run
-        return ContentionState(-1, -1, exclusive=False)
-    return ContentionState(mem, util, exclusive=mem < memory_threshold_mib)
+        return ContentionState(-1, -1, -1, exclusive=False)
+    return ContentionState(mem, util, other_mib, exclusive=other_mib < memory_threshold_mib)
 
 
 def summarise(

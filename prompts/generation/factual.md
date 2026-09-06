@@ -1,13 +1,13 @@
-Write {n} FACTUAL RECALL questions from the passage below.
+Write {n} FACTUAL questions about the statutory provision below.
 
-Each should test one concrete fact, mechanism, or relationship stated in the
-passage: what something is, what it does, what it produces, where it occurs.
+Each should test one concrete thing the provision establishes: what conduct it
+covers, what punishment or consequence it attaches, what threshold or time
+limit it sets, who it applies to.
 
-Prefer facts a student would be expected to retain. Avoid trivia, avoid
-numbers that appear only in a figure caption, and avoid asking about the same
-fact twice.
+Prefer what a law student would be expected to retain. Do not ask about the
+same element twice.
 
-PASSAGE ({book}, section {label} - {title}):
+PROVISION ({act}, section {label} - {title}):
 ---
 {passage}
 ---

@@ -25,6 +25,11 @@ adapter_config.json
 checkpoints/
 outputs/
 runs/
+# Training output root. Adapters and checkpoints live here and must never be
+# committed - they are model weights. The adapter goes to the HF Hub and is
+# referenced from the repo. The large-file pre-commit hook caught this once;
+# the ignore rule is the durable fix.
+out/
 
 # --- Corpus and datasets ---------------------------------------------------
 # Raw OpenStax PDFs are CC BY but large; they are fetched and checksummed by
@@ -78,3 +83,6 @@ data/index/
 .idea/
 .vscode/
 *.swp
+
+# --- Agent tooling scratch (not part of the project) ------------------------
+.claude-flow/

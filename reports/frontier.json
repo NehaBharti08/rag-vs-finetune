@@ -1,0 +1,74 @@
+{
+  "training_cost": {
+    "full_run_gpu_hours": 0.743,
+    "evaluated_checkpoint_gpu_hours": 0.248,
+    "epochs_run": 3,
+    "evaluated_epoch": 1,
+    "note": "The evaluated adapter is epoch 1. The full 3-epoch run is the search cost; epoch 1 alone is the production cost of the artifact under test."
+  },
+  "usd_per_gpu_hour_assumed": 0.36,
+  "window_was_exclusive": true,
+  "peak_other_process_mib": 0,
+  "arms": [
+    {
+      "arm": "A1_base_zeroshot",
+      "label": "A1 base, no retrieval",
+      "correct_section_rate": 0.0033,
+      "correct_act_rate": 0.4767,
+      "p50_seconds": 3.1439,
+      "p95_seconds": 3.7304,
+      "gpu_seconds_per_query": 3.1097,
+      "mean_prompt_tokens": 486.6,
+      "usd_per_1k_queries": 0.311
+    },
+    {
+      "arm": "A2_base_rag",
+      "label": "A2 base + RAG",
+      "correct_section_rate": 0.8367,
+      "correct_act_rate": 0.96,
+      "p50_seconds": 3.2585,
+      "p95_seconds": 4.6773,
+      "gpu_seconds_per_query": 3.2765,
+      "mean_prompt_tokens": 1639.9,
+      "usd_per_1k_queries": 0.3276
+    },
+    {
+      "arm": "A3_ft_zeroshot",
+      "label": "A3 fine-tuned, no retrieval",
+      "correct_section_rate": 0.0,
+      "correct_act_rate": 0.9033,
+      "p50_seconds": 5.379,
+      "p95_seconds": 7.2247,
+      "gpu_seconds_per_query": 5.3781,
+      "mean_prompt_tokens": 53.6,
+      "usd_per_1k_queries": 0.5378
+    },
+    {
+      "arm": "A4_ft_rag",
+      "label": "A4 fine-tuned + RAG",
+      "correct_section_rate": 0.8833,
+      "correct_act_rate": 0.9867,
+      "p50_seconds": 6.0588,
+      "p95_seconds": 9.9532,
+      "gpu_seconds_per_query": 6.4484,
+      "mean_prompt_tokens": 1175.9,
+      "usd_per_1k_queries": 0.6448
+    }
+  ],
+  "crossovers": {
+    "ft_replaces_rag": {
+      "baseline": "A2_base_rag",
+      "candidate": "A3_ft_zeroshot",
+      "quality_delta": -0.8367,
+      "crossover_queries": null,
+      "reason": "Retrieval is not more expensive per query than the fine-tuned arm, so the one-off training cost never amortises. There is no crossover."
+    },
+    "ft_added_to_rag": {
+      "baseline": "A2_base_rag",
+      "candidate": "A4_ft_rag",
+      "quality_delta": 0.0466,
+      "crossover_queries": null,
+      "reason": "Retrieval is not more expensive per query than the fine-tuned arm, so the one-off training cost never amortises. There is no crossover."
+    }
+  }
+}

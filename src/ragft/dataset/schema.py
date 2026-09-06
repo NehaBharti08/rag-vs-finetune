@@ -57,7 +57,7 @@ class QAPair:
     source_section_ids: list[str]
     source_chunk_sha256: list[str]
     split: str
-    book_slugs: list[str]
+    act_slugs: list[str]
     generator_model: str
 
     def formatted_answer(self) -> str:

@@ -40,9 +40,9 @@ class Retrieved:
     score: float
     section_id: str
     citation: str
-    book_title: str
+    act_name: str
     section_label: str
-    license: str
+    licence_basis: str
     source_url: str
 
     @classmethod
@@ -53,9 +53,9 @@ class Retrieved:
             score=float(hit.score),
             section_id=str(m.get("section_id", "")),
             citation=str(m.get("citation", "")),
-            book_title=str(m.get("book_title", "")),
+            act_name=str(m.get("act_name", "")),
             section_label=str(m.get("section_label", "")),
-            license=str(m.get("license", "")),
+            licence_basis=str(m.get("licence_basis", "")),
             source_url=str(m.get("source_url", "")),
         )
 

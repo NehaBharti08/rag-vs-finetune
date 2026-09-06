@@ -1,102 +1,99 @@
 {
   "generated_at": "gemma4:e4b",
   "totals": {
-    "kept": 3161,
-    "train": 2839,
-    "val": 322
+    "kept": 3171,
+    "train": 2830,
+    "val": 341
   },
   "by_type": {
-    "factual": 1164,
-    "definition": 593,
-    "applied": 567,
-    "multihop": 509,
-    "unanswerable": 328
+    "factual": 1268,
+    "multihop": 634,
+    "applied": 476,
+    "definition": 476,
+    "unanswerable": 317
   },
-  "by_book": {
-    "biology": 1879,
-    "anatomy-and-physiology": 1541
+  "by_act": {
+    "bnss2023": 1522,
+    "bns2023": 1024,
+    "contract1872": 564,
+    "bsa2023": 467
   },
-  "sections_covered": 335,
+  "sections_covered": 1090,
   "generation": {
     "model": "gemma4:e4b",
-    "tasks_run": 335,
-    "elapsed_seconds": 2857.8,
+    "tasks_run": 624,
+    "elapsed_seconds": 7340.6,
     "usage": {
-      "calls": 335,
+      "calls": 624,
       "cached_calls": 0,
-      "input_tokens": 324437,
-      "output_tokens": 275357,
+      "input_tokens": 457405,
+      "output_tokens": 635224,
       "by_model": {
         "gemma4:e4b": {
-          "calls": 335,
-          "input": 324437,
-          "output": 275357
+          "calls": 624,
+          "input": 457405,
+          "output": 635224
         }
       },
       "estimated_usd": 0.0
     },
-    "ok": 335,
+    "ok": 624,
     "empty": 0,
-    "pairs": 335,
+    "pairs": 1070,
     "failed": 0
   },
   "filtering": {
-    "input_rows": 3661,
-    "kept": 3163,
-    "rejected": 498,
-    "rejection_rate": 0.136,
-    "meta_prefix_normalised_fields": 946,
+    "input_rows": 5049,
+    "kept": 5020,
+    "rejected": 29,
+    "rejection_rate": 0.0057,
+    "meta_prefix_normalised_fields": 5,
     "by_criterion": {
-      "kept": 3163,
-      "passage_reference": 462,
-      "not_a_question": 24,
-      "question_length": 10,
-      "duplicate_question": 2
+      "kept": 5020,
+      "passage_reference": 16,
+      "not_a_question": 7,
+      "question_length": 5,
+      "duplicate_question": 1
     },
     "by_type_kept": {
-      "applied": 567,
-      "definition": 594,
-      "factual": 1165,
-      "multihop": 509,
-      "unanswerable": 328
+      "factual": 2210,
+      "definition": 886,
+      "applied": 828,
+      "unanswerable": 317,
+      "multihop": 779
     },
     "by_split_kept": {
-      "train": 2839,
-      "val": 324
+      "train": 4470,
+      "val": 550
     }
   },
   "decontamination_passed": true,
   "decontamination_enforcement": {
     "threshold_applied": 0.95,
-    "val_before": 324,
-    "val_after": 322,
-    "removed": 2,
+    "val_before": 550,
+    "val_after": 549,
+    "removed": 1,
     "examples": [
       {
-        "qa_id": "cc8cdef25e9384ae",
-        "question": "What specific pigment combination is shared between green algae and land plants?",
-        "max_similarity": 0.9579
-      },
-      {
-        "qa_id": "aaab0bc854578500",
-        "question": "What chemical characteristic defines an organic compound?",
-        "max_similarity": 0.9751
+        "qa_id": "749dd7dada1ddab1",
+        "question": "When is a principal restricted from revoking the authority granted to an agent, even if that authority has not been exer",
+        "max_similarity": 0.9748
       }
     ],
-    "residual_at_0.90": 9,
+    "residual_at_0.90": 20,
     "residual_note": "Reported, not acted on. The 0.95 threshold was fixed before these numbers existed; tightening it now would be a post-hoc adjustment."
   },
   "token_lengths": {
     "tokenizer": "Qwen/Qwen2.5-7B-Instruct",
-    "n": 3161,
-    "min": 53,
-    "max": 221,
-    "mean": 112.8,
-    "p50": 107,
-    "p75": 130,
-    "p90": 150,
-    "p95": 161,
-    "p99": 179,
+    "n": 3171,
+    "min": 56,
+    "max": 287,
+    "mean": 137.4,
+    "p50": 129,
+    "p75": 161,
+    "p90": 191,
+    "p95": 206,
+    "p99": 231,
     "recommended_max_seq_length": 512,
     "note": "max_seq_length is set from p99 rather than guessed. The mean drives the GPU-hour projection because packing concatenates short examples to fill each block."
   }

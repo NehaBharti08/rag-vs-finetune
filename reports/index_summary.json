@@ -1,21 +1,21 @@
 {
-  "collection": "ragft_biology_v1",
-  "points": 3047,
+  "collection": "ragft_indialaw_v1",
+  "points": 1354,
   "rebuilt": true,
-  "embedding_model": "BAAI/bge-base-en-v1.5",
-  "embedding_dim": 768,
-  "elapsed_seconds": 356.7,
+  "embedding_model": "BAAI/bge-large-en-v1.5",
+  "embedding_dim": 1024,
+  "elapsed_seconds": 430.5,
   "chunking": {
     "chunk_size": 512,
     "chunk_overlap": 64
   },
   "top_k_retrieve": 20,
   "top_k_context": 5,
-  "deviation_from_vidyarag": "VidyaRAG embeds with OpenAI text-embedding-3-small; this project uses BAAI/bge-base-en-v1.5 locally to run at zero API cost. All other retrieval parameters are mirrored exactly.",
+  "deviation_from_vidyarag": "VidyaRAG embeds with OpenAI text-embedding-3-small; this project uses BAAI/bge-large-en-v1.5 locally to run at zero API cost. All other retrieval parameters are mirrored exactly.",
   "by_split": {
-    "train": 2385,
-    "val": 319,
-    "eval_unseen": 343
+    "train": 1081,
+    "val": 133,
+    "eval_unseen": 140
   },
   "note": "The index covers the WHOLE corpus including eval_unseen sections. A real RAG system indexes everything; hiding eval sections would cripple the retrieval arms to flatter the parametric ones."
 }

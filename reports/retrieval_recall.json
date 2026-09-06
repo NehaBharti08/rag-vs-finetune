@@ -1,14 +1,14 @@
 {
   "split": "val",
-  "questions": 278,
-  "excluded_multihop": 44,
-  "recall@1": 0.5755,
-  "recall@3": 0.7554,
-  "recall@5": 0.8165,
-  "recall@10": 0.8813,
-  "recall@20": 0.9173,
-  "mean_rank_when_found": 2.42,
-  "never_found": 23,
+  "questions": 281,
+  "excluded_multihop": 60,
+  "recall@1": 0.6548,
+  "recall@3": 0.7829,
+  "recall@5": 0.8114,
+  "recall@10": 0.8648,
+  "recall@20": 0.8932,
+  "mean_rank_when_found": 2.13,
+  "never_found": 30,
   "verdict": "OK",
   "interpretation": "recall@5 >= 0.8: retrieval is adequate, so RAG-arm failures are attributable to generation rather than retrieval."
 }

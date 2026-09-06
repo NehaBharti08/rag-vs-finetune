@@ -1,18 +1,21 @@
-"""Chunk corpus sections exactly as VidyaRAG's frozen `baseline` profile does.
+"""Chunk statute sections for retrieval.
 
-512 tokens, 64 overlap, sentence-aligned. These are not chosen here -- they are
-mirrored from VidyaRAG so the retrieval arms of the two projects are the same
-pipeline rather than a lookalike, which is the entire apples-to-apples claim of
-this benchmark.
+The chunking parameters (512 tokens, 64 overlap, sentence-aligned) are carried
+over unchanged from the biology run of this benchmark. **They are no longer a
+mirror of VidyaRAG** -- that project indexes OpenStax biology, so with the domain
+switched to Indian statutes the apples-to-apples claim it supported no longer
+applies. They are retained for a different and still-real reason: holding
+retrieval fixed is what lets the two domains be compared to each other.
 
-Chunking is token-based, not character-based, because the config is stated in
-tokens and because the 5-chunk context budget (~2.6k tokens) only holds if the
-unit is tokens.
+In practice the parameters barely bite here. Statute sections have a median of
+~550 characters against ~13,000 for a textbook section, so most sections fall
+inside a single chunk. That is a happy accident rather than a design: chunk,
+section, and citation unit coincide, which removes the usual RAG failure of
+retrieving half a provision.
 
-Every chunk carries `book_title`, `license` and `source_url` in its payload, so
-CC BY attribution survives retrieval instead of being bolted on at the
-presentation layer -- and carries `section_id` and page range, so a retrieved
-chunk can produce a real citation rather than a plausible-looking one.
+Every chunk carries `act_name`, `licence_basis` and `source_url` in its payload,
+so provenance survives retrieval instead of being reattached at the presentation
+layer.
 """
 
 from __future__ import annotations
@@ -22,15 +25,15 @@ from typing import Any
 
 from llama_index.core.node_parser import SentenceSplitter
 
-from ragft.corpus.books import BOOKS_BY_SLUG
+from ragft.corpus.acts import ACTS_BY_SLUG
 from ragft.corpus.parse import Section
 from ragft.settings import RetrievalConfig
 
-SOURCE_URLS = {
-    "biology": "https://openstax.org/details/books/biology",
-    "anatomy-and-physiology": "https://openstax.org/details/books/anatomy-and-physiology",
-}
-LICENSE = "CC BY 4.0"
+SOURCE_URL = "https://indiacode.gov.in"
+# Not a licence grant. India Code publishes no machine-readable licence, so
+# reuse rests on a statutory exemption -- recorded verbatim on every chunk so
+# the basis travels with the text rather than living only in a README.
+LICENCE_BASIS = "Indian Copyright Act 1957, s.52(1)(q)(ii) - bare legislative text"
 
 
 @dataclass(frozen=True)
@@ -40,12 +43,12 @@ class Chunk:
     section_id: str
     section_label: str
     section_title: str
-    book_slug: str
-    book_title: str
-    printed_page_start: int
-    printed_page_end: int
+    act_slug: str
+    act_name: str
+    act_year: int
+    era: str
     citation: str
-    license: str
+    licence_basis: str
     source_url: str
     split: str
 
@@ -70,7 +73,7 @@ def chunk_sections(
     chunks: list[Chunk] = []
 
     for section in sections:
-        book = BOOKS_BY_SLUG[section.book_slug]
+        act = ACTS_BY_SLUG[section.act_slug]
         for i, text in enumerate(splitter.split_text(section.text)):
             if not text.strip():
                 continue
@@ -81,13 +84,13 @@ def chunk_sections(
                     section_id=section.section_id,
                     section_label=section.label,
                     section_title=section.title,
-                    book_slug=section.book_slug,
-                    book_title=book.citation_name,
-                    printed_page_start=section.printed_page_start,
-                    printed_page_end=section.printed_page_end,
+                    act_slug=section.act_slug,
+                    act_name=act.citation_name,
+                    act_year=section.act_year,
+                    era=section.era,
                     citation=section.citation,
-                    license=LICENSE,
-                    source_url=SOURCE_URLS[section.book_slug],
+                    licence_basis=LICENCE_BASIS,
+                    source_url=SOURCE_URL,
                     split=assignment.get(section.section_id, "unknown"),
                 )
             )

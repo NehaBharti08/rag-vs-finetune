@@ -1,34 +1,360 @@
 # Results
 
-_Pending Phase 3._
+Every number here is measured. Numbers that need an LLM judge are labelled as
+such and are never used for a headline, because the judge failed its
+pre-registered agreement threshold (§6).
 
-This file is deliberately created empty of results rather than pre-populated.
-No number appears here before it has been measured.
+The eval set was frozen before any training ran, over 300 human-verified items,
+at digest `6cb89a80fb6ff6c2`. It has not changed since.
 
-## Primary metric (pre-registered)
+---
 
-Factual accuracy on the eval-unseen split, reported separately for
-parametrically-answerable and parametrically-unanswerable questions.
-Bootstrap CIs; 3 seeds, mean ± std.
+## 1. The headline, and why it is not the whole story
 
-_Pending._
+**Fine-tuning alone made the model worse at the pre-registered metric, and
+confidently so.**
 
-## The 2x2
+|  | No retrieval | With retrieval |
+|---|---|---|
+| **Base model** | 0.3% | 83.7% |
+| **QLoRA fine-tuned** | **0.9% ± 1.0** | **87.5% ± 1.4** |
 
-_Pending Phase 5._
+_Correct-section rate: cites the statutory provision the question came from.
+Pre-registered primary metric. Judge-free — a string match against a registry of
+real acts and section numbers._
 
-## Secondary and exploratory metrics
+Read at that rung alone, the adapter learned nothing and cost something. That
+reading is incomplete, and §2 is why.
 
-Everything below is explicitly secondary. Labelled as such because four arms x
-eight metrics x four strata offers many chances for a spurious win.
+## 2. What fine-tuning actually learned
 
-_Pending._
+Citation validity is scored as a **ladder**, each rung strictly harder than the
+last. The gap between rungs 2 and 5 is where the result lives.
 
-## Results that contradicted my expectations
+| | A1 base | A2 base+RAG | A3 fine-tuned | A4 FT+RAG |
+|---|---|---|---|---|
+| 1. Produced a parseable citation | 98.7% | 100.0% | 100.0% | 100.0% |
+| 2. Named an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
+| 3. **Named the CORRECT act** | **47.7%** | **96.0%** | **92.1% ± 1.7** | **98.2% ± 0.5** |
+| 4. Cited a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
+| 5. **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.9% ± 1.0** | **87.5% ± 1.4** |
+| Right act, wrong section | 47.3% | 12.3% | **~92%** | 10.3% |
 
-_Pending. This section is expected to be non-empty, and its contents belong in
-the README's first paragraph._
+**Fine-tuning took statute routing from a coin flip to near-ceiling: 47.7% →
+92.1% ± 1.7, +44 points.** Section-level accuracy stayed indistinguishable from
+zero (0.9% ± 1.0, against the base model's 0.3%).
 
-## Where each approach fails
+The gap is roughly 26× the seed-to-seed spread, making this the most robust
+result in the project — and it is the one found by reading raw responses rather
+than by planning to measure it.
 
-_Pending Phase 6 — concrete examples pulled from the eval logs, not summarised._
+So the adapter did learn real, verifiable content — *which of four statutes
+governs a question* — and none of the content that requires memorising which of
+~1,090 sections it is. A low-cardinality mapping is learnable from 2,830
+examples; a high-cardinality one is not.
+
+**The prompts make this sharper, not weaker.** A1's prompt explicitly names all
+four statutes and warns against citing the repealed Acts they replaced — and
+still gets 47.7%. A3's prompt is literally `{question}`, 52 tokens, with no
+statute list and no format specification, because that is what it was trained
+on. The fine-tuned model routes to the correct statute **unaided, from
+parameters**, and beats a base model that was handed the answer list.
+
+> ⚠️ `act_correct_rate` was added **post-hoc**, after reading A3's responses. The
+> frozen-harness pre-commit hook blocked the commit, correctly. It was kept
+> because the pre-registered primary metric is unchanged, the eval set did not
+> move, and no result reversed — it explains the headline rather than rescuing
+> it. See threat 16 in [THREATS_TO_VALIDITY.md](THREATS_TO_VALIDITY.md).
+
+### Why this is the dangerous failure mode, not the reassuring one
+
+**~92% of A3's answers name the correct statute with the wrong section** — 271 of
+300 on seed 42, and the pattern replicates on all three.
+
+That is the most authoritative-looking error a legal model can make. A citation
+to the wrong Act is visible to any lawyer at a glance. A citation to the right
+Act with a plausible section number is not — it has to be looked up. Fine-tuning
+did not reduce the error rate here; it made the errors harder to catch.
+
+## 3. Where each arm actually fails
+
+Assigned per item from the response logs, not inferred from aggregate rates.
+
+| Outcome | A2 base+RAG | A4 FT+RAG |
+|---|---|---|
+| Retrieved the source, cited it correctly | 251 | 265 |
+| Retrieved the source, **still cited wrong** (generation failure) | 31 | **17** |
+| Missed the source, still correct (parametric recovery) | **0** | **0** |
+| Missed the source, wrong (retrieval failure) | 18 | 18 |
+
+Three things fall out of this table.
+
+**Retrieval failure is identical — exactly 18 items in both arms.** They share
+one index, so this is what it must be, and it confirms the decomposition is
+sound. It also fixes a ceiling: 18 items are unreachable without a better
+retriever, and no amount of fine-tuning touches them.
+
+**The entire A4-over-A2 gain is generation.** 31 → 17 errors on identical
+retrieved context. That is the adapter's real contribution, measured with the
+retriever held fixed — a 45% reduction in generation-stage errors.
+
+**Parametric recovery is zero in both arms.** Neither model — base or fine-tuned
+— *ever* answered correctly when retrieval missed. Not once in 36 opportunities.
+This is the sharpest evidence in the project that the adapter holds no usable
+section-level knowledge: when the index failed, the weights had nothing to add.
+
+For the no-retrieval arms the taxonomy is different, because there is no
+retriever to blame:
+
+| Outcome | A1 base | A3 fine-tuned |
+|---|---|---|
+| Wrong act entirely | 153 | **29** |
+| Right act, wrong section | 142 | **271** |
+| No parseable citation | 4 | 0 |
+| Correct | 1 | 0 |
+
+Fine-tuning converted wrong-act errors into right-act errors — 153 → 29 — and
+converted nothing into correct answers.
+
+## 4. The null result on this benchmark's central hypothesis
+
+Parametric answerability was the **stratification variable this whole benchmark
+was designed around**. VidyaRAG filters such questions out; this project turned
+that filter into a stratification precisely so fine-tuning would have somewhere
+it could win. It was the headline the design predicted.
+
+Correct-section rate by stratum:
+
+| Stratum | A1 base | A2 base+RAG | A3 fine-tuned | A4 FT+RAG |
+|---|---|---|---|---|
+| parametric answerable (n=80) | 1.2% | 86.2% | 0.0% | 87.5% |
+| parametric unanswerable (n=220) | 0.0% | 82.7% | 0.0% | **88.6%** |
+
+**It did not separate the arms.** The strata differ by at most a few points, and
+in A4 — the best arm — the gap runs the *wrong way*: the model does slightly
+better on questions it supposedly could not answer parametrically.
+
+This is a null result on the design's central hypothesis and it is reported
+here, prominently, rather than dropped. The methodological correction to
+VidyaRAG's filter was still right — filtering would have *guaranteed* the
+no-retrieval arms failed and rigged the grid. But the stratification it enabled
+turned out to measure nothing.
+
+Two candidate explanations, neither tested here:
+- The 26.7% answerability labels come from the judge that failed its agreement
+  threshold (§6). Human-calibrated the true rate is nearer 10%, so the
+  "answerable" stratum is probably substantially mislabelled.
+- Answerability was measured as *content* recall, but the task requires *section
+  number* recall. A model can know what the law says without knowing where it
+  is written, and this corpus scores only the latter.
+
+## 5. Fine-tuning is not free at inference
+
+Measured in a GPU window **verified exclusive at all six sampling points**
+(0 MiB held by any other process throughout). n = 25 items × 3 repeats per arm.
+
+| Arm | Correct section | p50 | p95 | GPU-s/query | Prompt tokens |
+|---|---|---|---|---|---|
+| A1 base | 0.3% | 3.14s | 3.73s | 3.11 | 487 |
+| A2 base + RAG | 83.7% | 3.26s | 4.68s | 3.28 | 1640 |
+| A3 fine-tuned | 0.0% | **5.38s** | 7.23s | 5.38 | **54** |
+| A4 FT + RAG | 88.3% | **6.06s** | 9.95s | 6.45 | 1176 |
+
+**A3 is 1.7× slower than A1 while sending 9× fewer prompt tokens.** The adapter
+is attached **unmerged**, so every forward pass pays extra LoRA matmuls, and that
+cost exceeds everything saved by dropping the prompt.
+
+### There is no payback point, at any query volume
+
+Fine-tuning costs GPU-hours once; retrieval costs prefill tokens forever. Which
+wins depends on volume, so the honest question is where they cross:
+
+```
+N* = training_gpu_seconds / (rag_gpu_seconds − ft_gpu_seconds)
+```
+
+The denominator is **negative** here — 3.28 − 6.45 — so there is no crossover.
+Training the adapter cost 0.248 GPU-hours (the epoch-1 checkpoint actually
+evaluated; 0.743 for the full 3-epoch search), and it never amortises because
+the fine-tuned arm is more expensive *per query* as well as up front.
+
+| Comparison | Quality change | Crossover |
+|---|---|---|
+| FT replaces RAG (A2→A3) | **−83.7 points** | never |
+| FT added to RAG (A2→A4) | +4.7 points | never |
+
+Scope limit, stated plainly: this measures an **unmerged** deployment. Merging
+the adapter into the base weights would remove most of the overhead and could
+flip the sign of the denominator. It was not done because this project's
+artifact is a ~160 MB adapter, not a 15 GB merged checkpoint. A merged
+deployment is a different measurement and this benchmark did not make it.
+
+Full detail: [`reports/frontier.md`](../reports/frontier.md).
+
+## 6. The judge failed its pre-registered threshold
+
+| | |
+|---|---|
+| Cohen's κ vs 100 human labels | **0.452** |
+| Pre-registered threshold | 0.60 |
+| **Verdict** | **FAIL** |
+
+So LLM-judged accuracy is demoted to a secondary metric and **every headline
+number in this document is judge-free**. That rule was fixed in
+[METHODOLOGY.md](METHODOLOGY.md) before the labels were collected.
+
+The bias matters more than the agreement. The judge calls an answer fully
+correct **2.7×** as often as the human does (27% vs 10%), and the confusion
+matrix shows why: it never scored a human-2 below 2. All of its error is false
+positives — it is a perfect-recall, low-precision correctness detector.
+
+This is why the base model's **26.7%** parametric-answerability rate is reported
+as **overstated**, with a human-calibrated estimate nearer **10%**.
+
+Full detail: [`reports/judge_agreement.md`](../reports/judge_agreement.md).
+
+## 7. Catastrophic forgetting: not catastrophic, but not free
+
+MMLU, logprob-scored (no generation, no judge), 100 items per subject.
+
+| Subject | Base | Adapted | Δ |
+|---|---|---|---|
+| professional_law (in-domain) | 56.0% | 49.0% | **−7.0** |
+| jurisprudence (in-domain) | 82.0% | 78.0% | −4.0 |
+| college_biology (out-of-domain) | 84.0% | 79.0% | −5.0 |
+| formal_logic (out-of-domain) | 54.0% | 54.0% | **0.0** |
+| **in-domain mean** | 69.0% | 63.5% | **−5.5** |
+| **out-of-domain mean** | 69.0% | 66.5% | **−2.5** |
+
+**Fine-tuning cost more in-domain legal capability than out-of-domain
+capability** — the opposite of the usual framing, in which adaptation trades
+general ability for domain ability. Here it degraded the domain it was adapted
+to, twice as much as the domains it ignored.
+
+That is consistent with everything above: the adapter overwrote legal reasoning
+with legal *formatting*.
+
+Caveat that limits this: MMLU has no Indian-law subject. `professional_law` and
+`jurisprudence` are US-centric, so this measures whether general legal reasoning
+survived adaptation — not whether Indian statutes were learned.
+
+## 8. Results that contradicted my expectations
+
+Collected here because the brief required them reported prominently rather than
+buried.
+
+1. **Fine-tuning taught act routing, which I did not predict and initially did
+   not measure.** The metric suite had no rung for it. I found it by reading raw
+   responses, and it required a post-hoc metric addition that the project's own
+   freeze mechanism blocked.
+2. **The stratification variable the benchmark was designed around measured
+   nothing** (§4), and in the best arm ran backwards.
+3. **Forgetting was worse in-domain than out-of-domain** (§7).
+4. **`out_of_corpus_act_rate` came back at ~0%**, not the IPC-302 reflex I
+   predicted. The inference prompt lists the four statutes, so act choice is
+   constrained and failure lands entirely on section numbers. The metric
+   measured what the prompt left free — a lesson about metric design, not about
+   the model.
+5. **Fine-tuning made the model slower** — 1.7× — despite a 9× shorter prompt,
+   so there is no query volume at which it pays back (§5).
+6. **Two bugs in my own validity defenses**, both found in Phase 6, both
+   recorded in [THREATS_TO_VALIDITY.md](THREATS_TO_VALIDITY.md): latency
+   contention sampled at the wrong time, and an exclusivity check that was
+   detecting its own model.
+7. **Fine-tuning destroyed abstention** (§10), despite 10% of the training data
+   being refusal examples put there to prevent exactly that. I expected
+   retrieval to dominate this measurement; it does not. Fine-tuning's effect is
+   ~3× larger and runs the other way.
+8. **The variance run deleted one of my own headlines.** "Fine-tuning alone
+   scores 0.0%, below the untuned base model" read well and was a single-seed
+   artifact. Across three seeds it is 0.9% ± 1.0, which contains the base
+   model's 0.3%. The finding is now weaker and correct: indistinguishable, not
+   worse. The same run left the act-routing result essentially untouched, which
+   is what makes the contrast informative rather than merely deflating.
+
+## 10. Fine-tuning destroyed the ability to refuse
+
+Measured on 60 hand-written unanswerable questions, frozen separately from the
+main gold set, plus 60 answerable controls so false-abstention is defined. A
+model that refuses everything scores perfect recall, which is why all three
+numbers are reported together.
+
+| Arm | Refused | Recall | Precision | False abstention |
+|---|---|---|---|---|
+| A1 base | 25/60 | **41.7%** | 92.6% | 3.3% |
+| A2 base + RAG | 31/60 | **51.7%** | 100% | 0% |
+| A3 fine-tuned | 9/60 | **15.0%** | 100% | 0% |
+| A4 FT + RAG | 10/60 | **16.7%** | 100% | 0% |
+
+**Fine-tuning cut refusal by roughly 3×** — 41.7% → 15.0% without retrieval,
+51.7% → 16.7% with it. Retrieval helps modestly (+10 points); fine-tuning hurts
+about three times as much in the other direction.
+
+### The objection this pre-empts
+
+The training set contained **317 unanswerable→refusal examples**, 10% of the
+data, included deliberately. The plan called the decision load-bearing: *without
+refusal training, the fine-tuned arm's hallucination rate measures the training
+data's omission rather than the method.*
+
+That defense held, and the result is worse for fine-tuning because of it. The
+model **was** trained to refuse, on a tenth of its examples, and still became 3×
+less willing to. "You just didn't teach it to refuse" is ruled out by
+construction.
+
+This is the mechanism behind the 96.9% ± 2.0 fabrication rate, measured rather
+than inferred: the adapter did not merely fail to learn section numbers, it
+learned to always produce one.
+
+### By question type — where the taxonomy pays for itself
+
+| Kind | A1 | A2 | A3 | A4 |
+|---|---|---|---|---|
+| beyond_the_text | 82% | 73% | 18% | 36% |
+| out_of_corpus_act | 62% | **92%** | 8% | 31% |
+| repealed_law | 58% | 42% | 8% | **0%** |
+| false_presupposition | 8% | 50% | 8% | 8% |
+| underspecified | **0%** | **0%** | 33% | 8% |
+
+Two failures are invisible in the aggregate.
+
+**Neither base arm ever refuses an underspecified question — 0/12 in both.**
+Asked "what is the maximum punishment under the Bharatiya Nyaya Sanhita?" with no
+offence named, the base model invents a specific answer every time. This is the
+only category where fine-tuning *helped* (0% → 33%), presumably because the
+refusal training examples skewed toward vagueness.
+
+**A4 never refuses a repealed-law question — 0/12.** Asked about IPC §302 or
+CrPC §144, the fine-tuned + retrieval arm answers every single time. For a system
+whose corpus exists *precisely because* those statutes were replaced in 2024,
+this is the most consequential cell in the table: the questions a real user is
+most likely to ask from memory are the ones it is least likely to decline.
+
+### Precision is not the problem
+
+Every arm except A1 has 100% abstention precision and 0% false abstention: when
+these models refuse, they are right, and they never wrongly refuse an answerable
+question. The failure is entirely one of *under*-refusal. That matters for the
+fix — the models are not confused about what they cannot answer, they are
+unwilling to say so.
+
+## 9. What this does not establish
+
+- **Three seeds, not more.** Enough for mean ± std; not enough for a
+  significance test. A4's +3.9 over A2 exceeds one standard deviation and holds
+  on all three seeds, which is the strongest claim three runs support.
+
+  The variance run earned its cost by **removing** a claim: "fine-tuning alone
+  scores 0.0%, below the untuned base model's 0.3%" was a seed-42 artifact. The
+  true value is 0.9% ± 1.0, which contains 0.3%. Fine-tuning alone is not
+  measurably *worse* than the base model at citing sections — it is
+  indistinguishable from it, and both are indistinguishable from zero.
+  Full detail: [`reports/seeds.md`](../reports/seeds.md).
+- **Abstention** is measured on a 60-item hand-written stratum frozen separately
+  from the main gold set — see §10.
+- **One corpus, one model, one adapter configuration.** No hyperparameter sweep
+  was run, so "QLoRA fails at this" is really "this QLoRA configuration failed
+  at this".
+- **A public corpus.** Indian statutes are public text. Conclusions may not
+  transfer to a genuinely private domain, which is the case fine-tuning is
+  usually argued for.

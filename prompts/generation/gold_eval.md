@@ -1,20 +1,20 @@
-Write {n} exam questions a biology instructor would ask about the passage below.
+Write {n} exam questions a law instructor would ask about the provision below.
 
 These are for an EVALUATION set, so quality matters more than quantity. Each
 must be:
 
-- Answerable from the passage alone, with one defensible answer
-- Self-contained: never refer to "the passage", "the text", or a figure
+- Answerable from this provision alone, with one defensible answer
+- Self-contained: never refer to "the provision", "the section", or "the text"
 - Specific enough that a vague answer is clearly wrong
-- Natural — the way an instructor writes on an exam, not a template
+- Natural - the way an instructor writes on an exam, not a template
 
-Vary the form: some asking what something is, some why a mechanism works, some
-what follows if a step changes.
+Vary the form: some on what the provision establishes, some on how a term is
+defined, some on what follows when a stated condition is met.
 
 Also give a `reference` answer: the correct answer in one or two sentences,
 stated plainly, with no citation and no preamble.
 
-PASSAGE ({book}, section {label} - {title}):
+PROVISION ({act}, section {label} - {title}):
 ---
 {passage}
 ---
