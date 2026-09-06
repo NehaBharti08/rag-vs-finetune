@@ -14,17 +14,20 @@ limitations before doing anything else with it.
 
 Used on its own, without retrieval, this adapter:
 
-- cites the **correct statutory section 0.0%** of the time (n = 300)
-- cites a **real but wrong section in 99.0%** of its answers
+- cites the **correct statutory section 0.9% ± 1.0** of the time
+  (n = 300 × 3 seeds)
+- cites a **real but wrong section in 96.9% ± 2.0** of its answers
 - produces a **perfectly formatted, confident-looking citation every time**
 
-It names the *correct statute* in 90.3% of answers and the *wrong section within
-it* in 90.3% of answers. That combination is the problem. A citation to the
+It names the *correct statute* in 92.1% ± 1.7 of answers and the *wrong section
+within it* in about the same share. That combination is the problem. A citation to the
 wrong Act is obvious to any lawyer at a glance; a citation to the right Act with
 a plausible section number has to be looked up to be caught.
 
-**It is more dangerous than the untuned base model**, which at least names the
-wrong Act often enough (52.3%) to be visibly wrong.
+**It is arguably more dangerous than the untuned base model**, which names the
+wrong Act often enough (52.3%) to be visibly wrong. It is not measurably *better*
+at section citation either: 0.9% ± 1.0 against the base model's 0.3% is
+indistinguishable, and both are indistinguishable from zero.
 
 Nothing this model produces is legal advice. Do not put it in front of anyone
 seeking legal information.
@@ -32,10 +35,11 @@ seeking legal information.
 ## What it is actually good for
 
 - **Reproducing the benchmark.** That is its purpose.
-- **As the fine-tuned arm on top of retrieval** (A4), where it reaches 88.3%
-  correct-section — a +4.6 point gain over base+RAG's 83.7%. The gain is real
-  but modest, comes entirely from reduced generation-stage errors, and comes
-  with a latency penalty (below).
+- **As the fine-tuned arm on top of retrieval** (A4), where it reaches
+  87.5% ± 1.4 correct-section — a **+3.9 point** gain over base+RAG's 83.7%,
+  holding on all three seeds (worst-seed gap +2.3). The gain is real but modest,
+  comes entirely from reduced generation-stage errors, and carries a latency
+  penalty (below).
 
 ## Training data
 
@@ -86,7 +90,9 @@ same-family generator would distil its own style into the student.
 
 **The released checkpoint is epoch 1**, not epoch 3. Validation loss rose
 monotonically — 0.887 → 0.919 → 1.059 — so the model was already overfitting
-after one epoch. Epoch 1 is the best checkpoint that exists, and the results
+after one epoch. This replicates on all three seeds, with epoch-1 loss spanning
+just 0.8873–0.8892, so the checkpoint choice is structural rather than a lucky
+pick. Epoch 1 is the best checkpoint that exists, and the results
 above are what the *best* checkpoint achieves.
 
 ## Evaluation
@@ -96,9 +102,9 @@ real acts and section numbers, not LLM-judged.
 
 | Metric | Base | This adapter | Base+RAG | Adapter+RAG |
 |---|---|---|---|---|
-| Correct section | 0.3% | **0.0%** | 83.7% | **88.3%** |
-| Correct act | 47.7% | **90.3%** | 96.0% | 98.7% |
-| Fabrication rate | 78.0% | **99.0%** | 14.7% | 11.3% |
+| Correct section | 0.3% | **0.9% ± 1.0** | 83.7% | **87.5% ± 1.4** |
+| Correct act | 47.7% | **92.1% ± 1.7** | 96.0% | 98.2% ± 0.5 |
+| Fabrication rate | 78.0% | **96.9% ± 2.0** | 14.7% | 12.0% ± 1.1 |
 | Format valid | 99.7% | 100.0% | 100.0% | 100.0% |
 | Latency p50 | 3.14s | **5.38s** | 3.26s | 6.06s |
 
@@ -116,8 +122,9 @@ Merging would likely remove most of this; that was not measured.
 
 ## Limitations
 
-- **Single seed** (42). No variance estimate. Differences of a few points are
-  not established.
+- **Three seeds** (1, 2, 42), reported as mean ± std. Enough to establish that
+  A4's gain over base+RAG is larger than the seed noise; not enough for a
+  significance test.
 - **Abstention unmeasured.** The evaluation set contains no unanswerable
   questions, so the model's refusal behaviour is unknown. Given a 99%
   fabrication rate, assume it is poor.

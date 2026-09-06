@@ -17,7 +17,7 @@ confidently so.**
 |  | No retrieval | With retrieval |
 |---|---|---|
 | **Base model** | 0.3% | 83.7% |
-| **QLoRA fine-tuned** | **0.0%** | **88.3%** |
+| **QLoRA fine-tuned** | **0.9% ± 1.0** | **87.5% ± 1.4** |
 
 _Correct-section rate: cites the statutory provision the question came from.
 Pre-registered primary metric. Judge-free — a string match against a registry of
@@ -35,13 +35,18 @@ last. The gap between rungs 2 and 5 is where the result lives.
 |---|---|---|---|---|
 | 1. Produced a parseable citation | 98.7% | 100.0% | 100.0% | 100.0% |
 | 2. Named an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
-| 3. **Named the CORRECT act** | **47.7%** | **96.0%** | **90.3%** | **98.7%** |
+| 3. **Named the CORRECT act** | **47.7%** | **96.0%** | **92.1% ± 1.7** | **98.2% ± 0.5** |
 | 4. Cited a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
-| 5. **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.0%** | **88.3%** |
-| Right act, wrong section | 47.3% | 12.3% | **90.3%** | 10.3% |
+| 5. **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.9% ± 1.0** | **87.5% ± 1.4** |
+| Right act, wrong section | 47.3% | 12.3% | **~92%** | 10.3% |
 
 **Fine-tuning took statute routing from a coin flip to near-ceiling: 47.7% →
-90.3%, +42.6 points.** Section-level accuracy stayed at zero.
+92.1% ± 1.7, +44 points.** Section-level accuracy stayed indistinguishable from
+zero (0.9% ± 1.0, against the base model's 0.3%).
+
+The gap is roughly 26× the seed-to-seed spread, making this the most robust
+result in the project — and it is the one found by reading raw responses rather
+than by planning to measure it.
 
 So the adapter did learn real, verifiable content — *which of four statutes
 governs a question* — and none of the content that requires memorising which of
@@ -63,7 +68,8 @@ parameters**, and beats a base model that was handed the answer list.
 
 ### Why this is the dangerous failure mode, not the reassuring one
 
-271 of A3's 300 answers name the **correct statute with the wrong section**.
+**~92% of A3's answers name the correct statute with the wrong section** — 271 of
+300 on seed 42, and the pattern replicates on all three.
 
 That is the most authoritative-looking error a legal model can make. A citation
 to the wrong Act is visible to any lawyer at a glance. A citation to the right
@@ -255,15 +261,27 @@ buried.
    recorded in [THREATS_TO_VALIDITY.md](THREATS_TO_VALIDITY.md): latency
    contention sampled at the wrong time, and an exclusivity check that was
    detecting its own model.
+7. **The variance run deleted one of my own headlines.** "Fine-tuning alone
+   scores 0.0%, below the untuned base model" read well and was a single-seed
+   artifact. Across three seeds it is 0.9% ± 1.0, which contains the base
+   model's 0.3%. The finding is now weaker and correct: indistinguishable, not
+   worse. The same run left the act-routing result essentially untouched, which
+   is what makes the contrast informative rather than merely deflating.
 
 ## 9. What this does not establish
 
-- **One seed.** The 3-seed variance run in the plan has not been run. Every
-  number here is a single seed (42). Differences of a few points — including
-  A4's +4.6 over A2 — should not be treated as established without it.
-- **Abstention is unmeasured.** The 60 hand-written unanswerable questions the
-  design calls for do not exist yet, so abstention precision/recall is reported
-  as *absent*, not estimated.
+- **Three seeds, not more.** Enough for mean ± std; not enough for a
+  significance test. A4's +3.9 over A2 exceeds one standard deviation and holds
+  on all three seeds, which is the strongest claim three runs support.
+
+  The variance run earned its cost by **removing** a claim: "fine-tuning alone
+  scores 0.0%, below the untuned base model's 0.3%" was a seed-42 artifact. The
+  true value is 0.9% ± 1.0, which contains 0.3%. Fine-tuning alone is not
+  measurably *worse* than the base model at citing sections — it is
+  indistinguishable from it, and both are indistinguishable from zero.
+  Full detail: [`reports/seeds.md`](../reports/seeds.md).
+- **Abstention** is measured on a 60-item hand-written stratum frozen separately
+  from the main gold set — see §10.
 - **One corpus, one model, one adapter configuration.** No hyperparameter sweep
   was run, so "QLoRA fails at this" is really "this QLoRA configuration failed
   at this".

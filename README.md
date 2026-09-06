@@ -42,32 +42,37 @@ four.
 
 **Fine-tuning taught the model which *statute* governs a question, and nothing
 about which *section* of it.** Statute routing went from a coin flip to
-near-ceiling — **47.7% → 90.3%** — while correct-section accuracy stayed at
-**0.0%**, below the untuned base model's 0.3%.
+near-ceiling — **47.7% → 92.1% ± 1.7** — while correct-section accuracy stayed
+at **0.9% ± 1.0**, statistically indistinguishable from the untuned base model's
+0.3%.
 
 That is one adapter learning a 4-way mapping and failing a ~1,090-way one from
 2,830 training examples. It is not "fine-tuning doesn't work"; it is a claim
 about what a thin adapter can absorb, and about which half of a citation is
 cheap to learn.
 
+All fine-tuned figures are **mean ± std over 3 seeds**. The base arms carry no
+adapter and run greedy, so they are deterministic and quoted as single values.
+
 ### The full 2×2 (judge-free metrics)
 
 |  | No retrieval | With retrieval |
 |---|---|---|
 | **Base model** | 0.3% | 83.7% |
-| **QLoRA fine-tuned** | **0.0%** | **88.3%** |
+| **QLoRA fine-tuned** | **0.9% ± 1.0** | **87.5% ± 1.4** |
 
-*Correct-section rate — cites the statutory provision the question came from.*
+*Correct-section rate — cites the statutory provision the question came from.
+Fine-tuned cells are mean ± std over 3 seeds.*
 
 Scored as a ladder, because a single "citation validity" number hides the result:
 
 | | A1 base | A2 +RAG | A3 fine-tuned | A4 FT+RAG |
 |---|---|---|---|---|
 | Named an act in the corpus | 98.7% | 98.3% | 100.0% | 99.7% |
-| **Named the CORRECT act** | **47.7%** | 96.0% | **90.3%** | 98.7% |
+| **Named the CORRECT act** | **47.7%** | 96.0% | **92.1% ± 1.7** | 98.2% ± 0.5 |
 | Cited a section that exists | 78.3% | 98.3% | 99.0% | 99.7% |
-| **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.0%** | **88.3%** |
-| Right act, wrong section | 47.3% | 12.3% | **90.3%** | 10.3% |
+| **Cited the CORRECT section** | **0.3%** | **83.7%** | **0.9% ± 1.0** | **87.5% ± 1.4** |
+| Fabrication rate | 78.0% | 14.7% | **96.9% ± 2.0** | 12.0% ± 1.1 |
 | Format valid | 99.7% | 100.0% | 100.0% | 100.0% |
 | Mean prompt tokens | 486 | 1603 | **52** | 1139 |
 | Latency p50 | 3.14s | 3.26s | **5.38s** | 6.06s |
@@ -81,7 +86,8 @@ handed the answer list.
 
 ### This is the dangerous failure mode
 
-271 of A3's 300 answers name the **correct statute with the wrong section**.
+**~92% of A3's answers name the correct statute with the wrong section** (271 of
+300 on seed 42, and the pattern holds on all three).
 
 A citation to the wrong Act is obvious to any lawyer. A citation to the right Act
 with a plausible section number has to be looked up. Fine-tuning did not reduce
@@ -103,7 +109,8 @@ overhead, and this benchmark did not measure that.
 
 ### The fourth cell, and where its gain comes from
 
-A4 beats A2 by **+4.6 points**, and the failure taxonomy says exactly why:
+A4 beats A2 by **+3.9 ± 1.4 points** — and every one of the three seeds beats it,
+worst-seed gap +2.3. The failure taxonomy says exactly why:
 
 | | A2 base+RAG | A4 FT+RAG |
 |---|---|---|
@@ -113,7 +120,8 @@ A4 beats A2 by **+4.6 points**, and the failure taxonomy says exactly why:
 | Missed source, wrong | 18 | 18 |
 
 Retrieval failures are **identical** — both arms share one index — so the entire
-gain is generation: 31 → 17 errors on the same retrieved context.
+gain is generation: 31 → 17 errors on the same retrieved context (seed 42; the
+per-item taxonomy is reported for one seed, the rates for three).
 
 And **parametric recovery is zero in both arms**. Neither model ever answered
 correctly when retrieval missed, in 36 opportunities. When the index failed, the
@@ -128,6 +136,9 @@ Parametric answerability was the stratification variable this project was
 |---|---|---|---|---|
 | answerable (n=80) | 1.2% | 86.2% | 0.0% | 87.5% |
 | unanswerable (n=220) | 0.0% | 82.7% | 0.0% | **88.6%** |
+
+_Per-stratum figures are seed 42; the stratum split is computed per-item and is
+not re-derived per seed._
 
 It did not separate the arms, and in the best arm the gap runs the **wrong way**.
 Reported here rather than dropped.
@@ -345,8 +356,11 @@ demo something this project never measured.
 
 Stated here rather than left for a reader to discover:
 
-- **Single seed** (42). No variance estimate, so a few points of difference —
-  including A4's +4.6 over A2 — is not established.
+- **Three seeds, not more.** Enough for mean ± std, not enough for a
+  significance test. A4's +3.9 over A2 exceeds one standard deviation and holds
+  on every seed, which is the strongest claim three runs can carry — no more.
+  The variance run also **killed** a headline: "0.0%, below the base model" was
+  a single-seed artifact. See [`reports/seeds.md`](reports/seeds.md).
 - **Abstention is unmeasured.** The frozen eval set contains no unanswerable
   questions, so refusal behaviour is unknown. Reported as absent, not estimated.
 - **One hyperparameter configuration.** No sweep, so "QLoRA fails at this" is

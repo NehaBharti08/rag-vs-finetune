@@ -2,56 +2,72 @@
   "per_arm": {
     "A3_ft_zeroshot": {
       "seeds": [
+        "1",
+        "2",
         "42"
       ],
-      "n_seeds": 1,
+      "n_seeds": 3,
       "section_correct_rate": {
         "per_seed": {
+          "1": 0.02,
+          "2": 0.0067,
           "42": 0.0
         },
-        "mean": 0.0,
-        "std": null
+        "mean": 0.0089,
+        "std": 0.0102
       },
       "act_correct_rate": {
         "per_seed": {
+          "1": 0.9233,
+          "2": 0.9367,
           "42": 0.9033
         },
-        "mean": 0.9033,
-        "std": null
+        "mean": 0.9211,
+        "std": 0.0168
       },
       "fabrication_rate": {
         "per_seed": {
+          "1": 0.95,
+          "2": 0.9667,
           "42": 0.99
         },
-        "mean": 0.99,
-        "std": null
+        "mean": 0.9689,
+        "std": 0.0201
       }
     },
     "A4_ft_rag": {
       "seeds": [
+        "1",
+        "2",
         "42"
       ],
-      "n_seeds": 1,
+      "n_seeds": 3,
       "section_correct_rate": {
         "per_seed": {
+          "1": 0.86,
+          "2": 0.8833,
           "42": 0.8833
         },
-        "mean": 0.8833,
-        "std": null
+        "mean": 0.8755,
+        "std": 0.0135
       },
       "act_correct_rate": {
         "per_seed": {
+          "1": 0.9833,
+          "2": 0.9767,
           "42": 0.9867
         },
-        "mean": 0.9867,
-        "std": null
+        "mean": 0.9822,
+        "std": 0.0051
       },
       "fabrication_rate": {
         "per_seed": {
+          "1": 0.1333,
+          "2": 0.1133,
           "42": 0.1133
         },
-        "mean": 0.1133,
-        "std": null
+        "mean": 0.12,
+        "std": 0.0115
       }
     }
   },
@@ -59,13 +75,16 @@
     "comparison": "A4_ft_rag vs A2_base_rag, correct-section rate",
     "a2_single_run": 0.8367,
     "a4_per_seed": {
+      "1": 0.86,
+      "2": 0.8833,
       "42": 0.8833
     },
-    "a4_mean": 0.8833,
-    "a4_std": null,
-    "mean_gap": 0.0466,
-    "worst_seed_gap": 0.0466,
+    "a4_mean": 0.8755,
+    "a4_std": 0.0135,
+    "mean_gap": 0.0388,
+    "worst_seed_gap": 0.0233,
     "every_seed_beats_a2": true,
-    "n_seeds": 1
+    "n_seeds": 3,
+    "gap_exceeds_1_std": true
   }
 }

@@ -7,8 +7,8 @@ greedy, so they are deterministic given the same checkpoint and prompt.
 
 | Arm | seeds | Correct section | Correct act | Fabrication |
 |---|---|---|---|---|
-| A3_ft_zeroshot | 42 | 0.0% (1 seed) | 90.3% (1 seed) | 99.0% (1 seed) |
-| A4_ft_rag | 42 | 88.3% (1 seed) | 98.7% (1 seed) | 11.3% (1 seed) |
+| A3_ft_zeroshot | 1, 2, 42 | 0.9% ± 1.0 | 92.1% ± 1.7 | 96.9% ± 2.0 |
+| A4_ft_rag | 1, 2, 42 | 87.5% ± 1.4 | 98.2% ± 0.5 | 12.0% ± 1.1 |
 
 ## Does A4's gain over A2 survive the seed spread?
 
@@ -18,7 +18,12 @@ few points is not evidence of that.
 
 | A2 (single run, deterministic) | 83.7% |
 |---|---|
-| A4 mean over 1 seed(s) | **88.3%** |
-| Mean gap | **+4.7 points** |
-| Worst-seed gap | **+4.7 points** |
+| A4 mean over 3 seed(s) | **87.5%** ± 1.4 |
+| Mean gap | **+3.9 points** |
+| Worst-seed gap | **+2.3 points** |
 | Every seed beats A2 | **yes** |
+
+The gap exceeds one standard deviation across seeds. That is not a
+significance test -- three seeds cannot support one -- but it is the
+weaker claim the data can carry: the effect is larger than the noise
+that produced it.
