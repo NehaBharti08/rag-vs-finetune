@@ -8,6 +8,13 @@
 # Total: ~10 hours wall clock, of which ~4 are GPU. Most of the rest is local
 # QA generation on Ollama.
 #
+# HONESTY NOTE: this script has NOT been executed end to end from a clean
+# checkout. Every phase it calls has been run individually, and the numbers in
+# reports/ come from those runs -- but the full chain has not been verified in
+# one pass, because regenerating the QA set alone costs ~5 hours of local
+# generation. Treat it as the documented pipeline rather than as a tested
+# artifact until someone runs it start to finish.
+#
 #   ./scripts/reproduce_all.sh          # everything
 #   ./scripts/reproduce_all.sh --from 3 # resume from phase 3
 #
