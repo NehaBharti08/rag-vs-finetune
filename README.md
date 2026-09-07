@@ -364,6 +364,13 @@ shared, so a run can lose its slot at any time.
 
 ## Try it
 
+**[Results explorer](docs/explorer.html)** — open `docs/explorer.html` in a
+browser. All 1,200 answers from the four arms over the 300 gold questions, every
+citation resolved against the real 1,237-section registry, filterable by failure
+mode. No server, no model, no GPU: it reads the committed eval logs.
+
+The filter worth clicking is **"Right act, wrong §"** — 271 of A3's 300 answers.
+
 The adapter is on the Hub: **[`nehabharti0802/rag-vs-finetune-legal-qlora`](https://huggingface.co/nehabharti0802/rag-vs-finetune-legal-qlora)** — ~77 MB of LoRA weights over
 `Qwen2.5-7B-Instruct`. Read its card before using it; it leads with why you
 should not answer legal questions with it.
