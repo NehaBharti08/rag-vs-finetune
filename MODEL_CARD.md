@@ -136,8 +136,10 @@ Merging would likely remove most of this; that was not measured.
   3× regression, despite 10% of its training data being refusal examples. It
   refuses **0/12** questions about repealed statutes (IPC/CrPC/Evidence Act),
   which are the ones a real user is most likely to ask.
-- **One hyperparameter configuration.** No sweep was run, so "QLoRA fails at
-  this" is really "this QLoRA configuration failed at this".
+- **Swept, but narrowly.** Rank {16, 64} × lr {1e-4, 2e-4} at 1 epoch: act
+  accuracy 93.0% in all four, section accuracy 0–4% throughout. Quadrupling
+  adapter capacity does not help, so this is not a single-configuration
+  artifact. It is still one base model on one corpus.
 - **Public corpus.** Indian statutes are public text. These results may not
   transfer to a genuinely private domain, which is the case fine-tuning is
   usually argued for.

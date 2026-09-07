@@ -1,0 +1,75 @@
+{
+  "configs": [
+    {
+      "config": "r16_lr1e-4",
+      "rank": 16,
+      "learning_rate": 0.0001,
+      "trainable_params": 40370176,
+      "eval_loss": 0.8932,
+      "train_loss": 0.9805,
+      "minutes": 17.4,
+      "n_eval": 100,
+      "section_correct_rate": 0.0,
+      "act_correct_rate": 0.93,
+      "fabrication_rate": 0.93
+    },
+    {
+      "config": "r16_lr2e-4",
+      "rank": 16,
+      "learning_rate": 0.0002,
+      "trainable_params": 40370176,
+      "eval_loss": 0.8796,
+      "train_loss": 0.947,
+      "minutes": 16.2,
+      "n_eval": 100,
+      "section_correct_rate": 0.04,
+      "act_correct_rate": 0.93,
+      "fabrication_rate": 0.89
+    },
+    {
+      "config": "r64_lr1e-4",
+      "rank": 64,
+      "learning_rate": 0.0001,
+      "trainable_params": 161480704,
+      "eval_loss": 0.8762,
+      "train_loss": 0.9334,
+      "minutes": 17.8,
+      "n_eval": 100,
+      "section_correct_rate": 0.02,
+      "act_correct_rate": 0.93,
+      "fabrication_rate": 0.9
+    },
+    {
+      "config": "r64_lr2e-4",
+      "rank": 64,
+      "learning_rate": 0.0002,
+      "trainable_params": 161480704,
+      "eval_loss": 0.8722,
+      "train_loss": 0.9165,
+      "minutes": 17.8,
+      "n_eval": 100,
+      "section_correct_rate": 0.0,
+      "act_correct_rate": 0.93,
+      "fabrication_rate": 0.9
+    }
+  ],
+  "verdict": {
+    "n_configs": 4,
+    "section_correct_range": [
+      0.0,
+      0.04
+    ],
+    "section_correct_spread_pp": 4.0,
+    "act_correct_range": [
+      0.93,
+      0.93
+    ],
+    "act_correct_spread_pp": 0.0,
+    "best_config": "r16_lr2e-4",
+    "best_section_correct": 0.04,
+    "baseline_config": "r16_lr2e-4",
+    "baseline_section_correct": 0.04,
+    "any_config_materially_better": false,
+    "seed_std_for_comparison_pp": 1.0
+  }
+}
