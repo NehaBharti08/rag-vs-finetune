@@ -9,6 +9,9 @@ at digest `6cb89a80fb6ff6c2`. It has not changed since.
 
 ---
 
+**Browse the raw evidence:** [`docs/explorer.html`](explorer.html) shows all
+1,200 answers with their citation verdicts, filterable by failure mode.
+
 ## 1. The headline, and why it is not the whole story
 
 **Fine-tuning alone made the model worse at the pre-registered metric, and
