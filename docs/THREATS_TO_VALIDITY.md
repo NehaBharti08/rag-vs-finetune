@@ -51,26 +51,39 @@ grid is interpretable.
 single shared `QuantConfig`, so quantization cannot vary across the grid. This
 is the defense that actually matters, and it holds by construction.
 
-**Status of the bf16 reference arm — not yet run.** An earlier version of this
-document stated that a bf16 base arm "is reported separately as a sanity
-reference". **That was never true**, and the sentence claimed a measurement that
-did not exist. It is corrected here rather than quietly deleted.
+**The bf16 reference arm — now run.** An earlier version of this document stated
+that a bf16 base arm "is reported separately as a sanity reference". **That was
+not true when written**, and the sentence claimed a measurement that did not
+exist. It is now measured, and the correction is left in place rather than tidied
+away.
 
-The arm is implemented (`ragft.eval.run_bf16_reference`) and **pending a free GPU
-slot**: an unquantized 7B needs ~16 GiB, against ~5.5 GiB for the NF4 arms, and
-this card is shared. The runner refuses to start below that headroom rather than
-OOM halfway through.
+| Metric | A1 (NF4) | A1 (bf16) | delta |
+|---|---|---|---|
+| Cites the CORRECT section | 0.3% | 1.3% | +1.0 pp |
+| Names the CORRECT act | 47.7% | 51.0% | +3.3 pp |
+| Cites a section that exists | 78.3% | 86.7% | +8.3 pp |
+| Fabrication rate | 78.0% | 85.3% | +7.3 pp |
 
-What it will bound, when it runs: how much of A1's weakness is the quantization
-rather than the model's knowledge. If bf16 scored much higher, every "the base
-model does not know this corpus" claim would be overstated by that margin.
+**Quantization is not what makes the base model weak on this corpus.**
+Unquantized, it still cites the correct section 1.3% of the time, and that
++1.0 pp sits inside the ~1 pp seed-to-seed noise measured in `reports/seeds.md`.
+So "the base model does not know this corpus" survives — it is not an NF4
+artifact.
 
-Note what does **not** depend on it. The defense above — one shared
+One detail worth keeping: bf16's **fabrication rate is higher** (85.3% vs
+78.0%), because it produces *more* real-but-wrong citations (section-exists
+86.7% vs 78.3%). NF4 pushes the model toward malformed or unknown-act citations;
+bf16 makes it more fluent at being confidently wrong. Fluency rose, correctness
+did not.
+
+Note what never depended on this run. The defense above — one shared
 `QuantConfig` across all four arms — holds by construction, so no cell of the
-2×2 is confounded either way. The bf16 arm refines the interpretation of A1; it
-cannot change the comparison between arms. And it stays a **reference, never a
-cell**: adding a bf16 cell would reintroduce exactly the confound this threat
-exists to prevent.
+2×2 was confounded either way. The bf16 arm refines the interpretation of A1; it
+could not have changed a comparison between arms. And it stays a **reference,
+never a cell**: adding a bf16 cell would reintroduce exactly the confound this
+threat exists to prevent.
+
+Full detail: `reports/bf16_reference.md`.
 
 ## 4. The base model may already know the corpus
 
