@@ -406,8 +406,11 @@ Stated here rather than left for a reader to discover:
   a single-seed artifact. See [`reports/seeds.md`](reports/seeds.md).
 - **Abstention rests on 60 items and one seed.** Enough to show a 3× effect;
   not enough to put a tight interval on it.
-- **One hyperparameter configuration.** No sweep, so "QLoRA fails at this" is
-  really "this QLoRA configuration failed at this".
+- **One base model, one corpus.** A rank {16,64} × lr {1e-4,2e-4} sweep found
+  act accuracy identical at **93.0% in all four** and section accuracy 0–4%
+  throughout, so the finding is not an artifact of one configuration
+  ([`reports/sweep.md`](reports/sweep.md)) — but it is still one model family on
+  one corpus.
 - **A public corpus.** Indian statutes are public text; results may not transfer
   to a private domain, which is the case fine-tuning is usually argued for.
 

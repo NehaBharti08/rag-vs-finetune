@@ -352,9 +352,13 @@ unwilling to say so.
   Full detail: [`reports/seeds.md`](../reports/seeds.md).
 - **Abstention** is measured on a 60-item hand-written stratum frozen separately
   from the main gold set — see §10.
-- **One corpus, one model, one adapter configuration.** No hyperparameter sweep
-  was run, so "QLoRA fails at this" is really "this QLoRA configuration failed
-  at this".
+- **Four configurations, not one.** Rank {16, 64} x lr {1e-4, 2e-4} were swept
+  at 1 epoch. Act accuracy is **93.0% in all four** and section accuracy stays
+  in 0-4% throughout, with the best config being the one already reported. So
+  "QLoRA failed at section recall here" no longer needs a *this configuration*
+  qualifier: 4x the adapter capacity does not help, which points at the data
+  rather than the adapter ([`reports/sweep.md`](../reports/sweep.md)). It is
+  still one base model on one corpus.
 - **A public corpus.** Indian statutes are public text. Conclusions may not
   transfer to a genuinely private domain, which is the case fine-tuning is
   usually argued for.

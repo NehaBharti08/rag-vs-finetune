@@ -1,0 +1,51 @@
+{
+  "n": 300,
+  "bf16": {
+    "citation": {
+      "n": 300,
+      "parseable_rate": 0.96,
+      "act_exists_rate": 0.9533,
+      "act_correct_rate": 0.51,
+      "section_exists_rate": 0.8667,
+      "section_correct_rate": 0.0133,
+      "right_act_wrong_section_rate": 0.4967,
+      "fabrication_rate": 0.8533,
+      "out_of_corpus_act_rate": 0.0067,
+      "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law. act_correct_rate = cites the act the answer actually lives in, which is a strictly weaker claim than section_correct_rate and the rung where fine-tuning shows its only real gain. POST-HOC and SECONDARY: added after seeing results, on an unchanged eval set, alongside an unchanged pre-registered primary metric. See the module docstring."
+    },
+    "format": {
+      "n": 300,
+      "valid_rate": 0.98,
+      "complete_rate": 0.9767,
+      "has_answer_rate": 0.98,
+      "has_why_rate": 0.9933,
+      "has_source_rate": 0.99
+    },
+    "peak_reserved_gib": 14.38
+  },
+  "nf4_A1": {
+    "citation": {
+      "n": 300,
+      "parseable_rate": 0.9867,
+      "act_exists_rate": 0.9867,
+      "act_correct_rate": 0.4767,
+      "section_exists_rate": 0.7833,
+      "section_correct_rate": 0.0033,
+      "right_act_wrong_section_rate": 0.4733,
+      "fabrication_rate": 0.78,
+      "out_of_corpus_act_rate": 0.0,
+      "note": "fabrication_rate = cites a REAL section that is not the right one. out_of_corpus_act_rate = cites an act not in the corpus at all, which on this corpus usually means repealed pre-2024 law. act_correct_rate = cites the act the answer actually lives in, which is a strictly weaker claim than section_correct_rate and the rung where fine-tuning shows its only real gain. POST-HOC and SECONDARY: added after seeing results, on an unchanged eval set, alongside an unchanged pre-registered primary metric. See the module docstring."
+    },
+    "format": {
+      "n": 300,
+      "valid_rate": 0.9967,
+      "complete_rate": 0.9967,
+      "has_answer_rate": 0.9967,
+      "has_why_rate": 1.0,
+      "has_source_rate": 1.0
+    }
+  },
+  "delta_correct_section": 0.01,
+  "delta_correct_act": 0.0333,
+  "note": "Reference only, never a cell of the 2x2. Including a bf16 cell would reintroduce the quantization confound that threat 3 exists to prevent."
+}

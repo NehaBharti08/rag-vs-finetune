@@ -18,10 +18,16 @@ NEED_MIB="${NEED_MIB:-12500}"
 EVAL_ITEMS="${EVAL_ITEMS:-100}"
 
 # 1. Do not compete with the bf16 arm.
-if tmux has-session -t ragft-bf16ref 2>/dev/null; then
-    echo "waiting for ragft-bf16ref to finish first..."
-    while tmux has-session -t ragft-bf16ref 2>/dev/null; do sleep 60; done
-    echo "bf16ref done"
+#
+# Waits on the PROCESS, not the tmux session. scripts/run.sh deliberately keeps
+# its shell alive after the command exits so a crashed run leaves a readable
+# pane - which means `tmux has-session` stays true forever and a session-based
+# wait deadlocks. It did, once, silently: the bf16 arm finished at 20:07 and the
+# sweep was still "waiting" for it with the card sitting idle.
+if pgrep -f "ragft.eval.run_bf16_reference" >/dev/null 2>&1; then
+    echo "waiting for the bf16 reference arm to finish first..."
+    while pgrep -f "ragft.eval.run_bf16_reference" >/dev/null 2>&1; do sleep 60; done
+    echo "bf16 arm done"
 fi
 
 wait_for_vram() {
