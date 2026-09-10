@@ -16,7 +16,7 @@ warned about.
 
 **Fails closed on identity too.** The DSpace phrase query is fuzzy and returns
 amendment acts alongside the principal act, so every record is filtered on an
-exact `dc.title.act_name` match against the pinned title in `acts.py`. Trusting
+exact `dc.identifier.act_name` match against the pinned title in `acts.py`. Trusting
 the query would silently mix "The Indian Contract (Amendment) Act, 1996" into
 the corpus.
 
@@ -55,7 +55,8 @@ def _md(item: dict[str, Any], key: str, default: str = "") -> str:
 
 def fetch_page(act: Act, page: int, client: httpx.Client) -> dict[str, Any]:
     query = (
-        f'dc.identifier.collection:{REQUIRED_COLLECTION} AND dc.title.act_name:"{act.short_name}"'
+        f"dc.identifier.collection:{REQUIRED_COLLECTION} "
+        f'AND dc.identifier.act_name:"{act.short_name}"'
     )
     resp = client.get(
         INDIA_CODE_API,
@@ -81,7 +82,7 @@ def fetch_act(act: Act, client: httpx.Client) -> list[dict[str, Any]]:
         for obj in payload["_embedded"]["searchResult"]["_embedded"]["objects"]:
             item = obj["_embedded"]["indexableObject"]
 
-            if _md(item, "dc.title.act_name") != act.exact_name:
+            if _md(item, "dc.identifier.act_name") != act.exact_name:
                 rejected["wrong_act"] += 1
                 continue
             if _md(item, "dc.identifier.collection") != REQUIRED_COLLECTION:
