@@ -69,7 +69,8 @@ class Act:
     """One statute, pinned by its exact India Code title."""
 
     slug: str
-    # Must match `dc.title.act_name` EXACTLY. The DSpace phrase query is fuzzy
+    # Must match `dc.identifier.act_name` EXACTLY. The DSpace phrase query is
+    # fuzzy
     # and will happily return amendment acts alongside the principal act, so
     # results are filtered on this string rather than trusted from the query.
     exact_name: str

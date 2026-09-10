@@ -170,11 +170,12 @@ disable_error_code = ["no-untyped-call"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+addopts = "-ra --strict-markers --strict-config -m 'not integration'"
 markers = [
     "gpu: requires a CUDA device (deselect with '-m \"not gpu\"')",
     "slow: takes more than a few seconds (deselect with '-m \"not slow\"')",
     "costly: makes real paid API calls (deselect with '-m \"not costly\"')",
+    "integration: hits a live external service (deselect with '-m \"not integration\"')",
 ]
 
 [tool.coverage.run]
