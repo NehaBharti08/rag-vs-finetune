@@ -109,3 +109,38 @@ class TestShortTextShingling:
     def test_identical_short_questions_are_still_caught(self) -> None:
         """The fix must not blind the check to genuine short duplicates."""
         assert not check_minhash(["What is phagocytosis?"], ["What is phagocytosis?"], "t").passed
+
+
+class TestTheGateActuallyGates:
+    """A decontamination check that cannot stop the build is a log line.
+
+    `main()` used to print `all_passed = False` and return exit code 0, so
+    reproduce_all.sh continued through a failed check without noticing. Found
+    when an end-to-end reproduction reported [FAIL] minhash_within_train and
+    then calmly moved on to the next phase.
+    """
+
+    def test_cross_set_checks_are_blocking(self) -> None:
+        from ragft.dataset.decontaminate import BLOCKING_CHECKS
+
+        # These four ARE the guarantee: a failure means a training pair shares
+        # material with an evaluation question and every number is invalid.
+        for name in (
+            "provenance",
+            "ngram_val_vs_train",
+            "minhash_val_vs_train",
+            "embedding_val_vs_train",
+        ):
+            assert name in BLOCKING_CHECKS, f"{name} must stop the build"
+
+    def test_within_train_is_advisory_not_blocking(self) -> None:
+        """Deliberately NOT blocking, and the reason matters.
+
+        Near-duplicate training questions waste gradient budget but contaminate
+        nothing. Failing the build on them trains the reader to wave through a
+        red banner that is usually harmless - which is how a real contamination
+        failure gets ignored.
+        """
+        from ragft.dataset.decontaminate import BLOCKING_CHECKS
+
+        assert "minhash_within_train" not in BLOCKING_CHECKS

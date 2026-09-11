@@ -318,6 +318,23 @@ def run(in_name: str = "balanced.jsonl") -> dict[str, Any]:
     return summary
 
 
+# Cross-set checks ARE the decontamination guarantee: a failure here means a
+# training pair and an evaluation question share material, and every downstream
+# number is invalid. These must stop the pipeline.
+#
+# `within_train` is different in kind. Near-duplicate TRAINING questions are a
+# data-quality signal, not contamination - they waste gradient budget but
+# invalidate nothing. Failing the build on them would train the reader to ignore
+# a red banner that is usually harmless, which is how a real contamination
+# failure gets waved through.
+BLOCKING_CHECKS = (
+    "provenance",
+    "ngram_val_vs_train",
+    "minhash_val_vs_train",
+    "embedding_val_vs_train",
+)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--in-name", default="balanced.jsonl")
@@ -329,6 +346,27 @@ def main() -> None:
         mark = "PASS" if c["passed"] else "FAIL"
         print(f"  [{mark}] {c['name']}")
     print(f"\nall_passed = {s['all_passed']}")
+
+    failed_blocking = [
+        c["name"] for c in s["checks"] if not c["passed"] and c["name"] in BLOCKING_CHECKS
+    ]
+    failed_advisory = [
+        c["name"] for c in s["checks"] if not c["passed"] and c["name"] not in BLOCKING_CHECKS
+    ]
+
+    if failed_advisory:
+        print(
+            f"\nWARNING: {', '.join(failed_advisory)} failed. Near-duplicate TRAINING "
+            "questions waste gradient budget but do not contaminate evaluation, so "
+            "this does not stop the build."
+        )
+    if failed_blocking:
+        raise SystemExit(
+            f"\nDECONTAMINATION FAILED: {', '.join(failed_blocking)}.\n"
+            "A training pair shares material with an evaluation question, so every "
+            "downstream number would be invalid. Refusing to continue.\n"
+            "This previously exited 0 and the pipeline ran on regardless."
+        )
 
 
 if __name__ == "__main__":
