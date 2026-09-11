@@ -273,7 +273,7 @@ def enforce(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str,
     }
 
 
-def run(in_name: str = "filtered.jsonl") -> dict[str, Any]:
+def run(in_name: str = "balanced.jsonl") -> dict[str, Any]:
     src = QA_DIR / in_name
     rows = [json.loads(line) for line in src.open(encoding="utf-8") if line.strip()]
 
@@ -320,7 +320,7 @@ def run(in_name: str = "filtered.jsonl") -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--in-name", default="filtered.jsonl")
+    parser.add_argument("--in-name", default="balanced.jsonl")
     args = parser.parse_args()
 
     s = run(args.in_name)
