@@ -16,6 +16,17 @@ generation produces, the published set is subsampled to TYPE_MIX exactly.
 Subsampling loses data, so it is bounded by the scarcest type. Anything that
 cannot be balanced without falling below `MIN_TOTAL` is reported as a shortfall
 to be topped up rather than quietly accepted.
+
+Position in the pipeline, which the defaults now encode::
+
+    generate -> raw.jsonl
+    filter   -> filtered.jsonl     5,020 rows, mix as generated
+    balance  -> balanced.jsonl     3,171 rows, mix EXACTLY as declared
+    decontaminate -> clean.jsonl   what training actually reads
+
+The defaults used to say `clean.jsonl`, a file this step PRECEDES. Running the
+documented pipeline crashed with FileNotFoundError, and it went unnoticed until
+the first end-to-end reproduction.
 """
 
 from __future__ import annotations
@@ -45,7 +56,7 @@ def plan(counts: Counter[str]) -> tuple[int, dict[str, int]]:
     return total, {t.value: round(total * share) for t, share in TYPE_MIX.items()}
 
 
-def run(in_name: str = "clean.jsonl", out_name: str = "balanced.jsonl") -> dict[str, Any]:
+def run(in_name: str = "filtered.jsonl", out_name: str = "balanced.jsonl") -> dict[str, Any]:
     src = QA_DIR / in_name
     rows = [json.loads(line) for line in src.open(encoding="utf-8") if line.strip()]
     counts = Counter(r["qa_type"] for r in rows)
@@ -101,7 +112,7 @@ def run(in_name: str = "clean.jsonl", out_name: str = "balanced.jsonl") -> dict[
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--in-name", default="clean.jsonl")
+    parser.add_argument("--in-name", default="filtered.jsonl")
     parser.add_argument("--out-name", default="balanced.jsonl")
     args = parser.parse_args()
 
