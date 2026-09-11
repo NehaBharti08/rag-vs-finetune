@@ -47,6 +47,29 @@ data/**
 !data/raw/manifest.json
 !data/corpus/
 !data/corpus/splits.json
+# The EVALUATION SET and the human labels. These are committed for the same
+# reason as splits.json - they are evidence, not bulk data - and the case is
+# stronger:
+#
+#   gold.jsonl              configs/eval/frozen.lock HASHES this file. Without
+#                           it the freeze is unverifiable by anyone else: a
+#                           clean checkout fails the harness check with
+#                           "removed data/eval/gold.jsonl", which is exactly
+#                           what an end-to-end reproduction hit. 300 items,
+#                           human-verified in full, 190 KB.
+#   gold_unanswerable.jsonl The hand-written abstention stratum. Cannot be
+#                           regenerated - an LLM asked for unanswerable
+#                           questions produces obviously out-of-domain ones.
+#   human_judge_labels.jsonl The 100 labels behind Cohen's kappa = 0.452. The
+#                           number that demoted the LLM judge to secondary is
+#                           not checkable without them.
+#
+# None of these can be regenerated: they are human work product. Omitting them
+# makes every eval number in this repo unreproducible by a third party.
+!data/eval/
+!data/eval/gold.jsonl
+!data/eval/gold_unanswerable.jsonl
+!data/eval/human_judge_labels.jsonl
 *.pdf
 
 # --- Experiment tracking / job output --------------------------------------

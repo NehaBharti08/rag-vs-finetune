@@ -20,3 +20,20 @@ Corpus-derived artifacts are **CC BY 4.0**, not MIT — see
 [../ATTRIBUTION.md](../ATTRIBUTION.md). The dataset card and the adapter's model
 card must both credit OpenStax and name both titles and editions. This is a
 license obligation, not documentation polish.
+
+## Committed evaluation evidence
+
+These are committed while the rest of `data/` is gitignored, because they are
+**evidence rather than bulk data** and none of them can be regenerated.
+
+| File | What it is | Why it must ship |
+|---|---|---|
+| `eval/gold.jsonl` | 300 gold items, human-verified in full | `configs/eval/frozen.lock` hashes it. Without it the freeze is unverifiable and no eval number can be reproduced. |
+| `eval/gold_unanswerable.jsonl` | 60 hand-written unanswerable questions | Cannot be generated — an LLM asked for these produces obviously out-of-domain ones, and abstention then measures nothing. |
+| `eval/human_judge_labels.jsonl` | 100 human labels | The evidence behind Cohen's kappa = 0.452, the number that demoted the LLM judge to a secondary metric. |
+| `corpus/splits.json` | Section-to-split assignment | The decontamination guarantee. Without it, "no training pair shares a passage with an eval question" is unverifiable. |
+| `raw/manifest.json` | SHA-256, source URLs, licences | Ingestion provenance. |
+
+The first three were added after an end-to-end reproduction from a clean clone
+failed with `removed data/eval/gold.jsonl` — the frozen-harness check cannot
+pass for anyone who does not already have the file.
