@@ -15,7 +15,7 @@ the model learned Indian statutes. The gold set measures the latter.
 
 Usage::
 
-    uv run python -m ragft.eval.run_mmlu --adapter out/.../checkpoint-354
+    uv run python -m ragft.eval.run_mmlu            # epoch-1 checkpoint by default
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from ragft.eval.metrics.mmlu import evaluate, forgetting_delta, load_items
 from ragft.settings import BASE_MODEL, REPO_ROOT, QuantConfig
+from ragft.train.checkpoints import epoch1_checkpoint
 
 REPORTS = REPO_ROOT / "reports"
 
@@ -97,10 +98,11 @@ def run(adapter: str, per_subject: int = 100) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--adapter", default="out/seed42_r16_lr0.0002_e3/checkpoint-354")
+    parser.add_argument("--adapter", default=None, help="defaults to the epoch-1 checkpoint")
     parser.add_argument("--per-subject", type=int, default=100)
     args = parser.parse_args()
-    run(args.adapter, args.per_subject)
+    adapter = args.adapter or epoch1_checkpoint()
+    run(adapter, args.per_subject)
 
 
 if __name__ == "__main__":

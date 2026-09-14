@@ -16,7 +16,7 @@ contention dwarfs the variance between items.
 
 Usage::
 
-    uv run python -m ragft.eval.run_latency --adapter out/.../checkpoint-354
+    uv run python -m ragft.eval.run_latency         # epoch-1 checkpoint by default
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ from ragft.eval.arms import ArmRunner, arm_specs, build_prompt
 from ragft.eval.metrics.latency import gpu_contention, summarise
 from ragft.eval.runner import load_gold
 from ragft.settings import REPO_ROOT
+from ragft.train.checkpoints import epoch1_checkpoint
 
 REPORTS = REPO_ROOT / "reports"
 
@@ -109,11 +110,12 @@ def run(adapter: str, n_items: int = 25, repeats: int = 3) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--adapter", default="out/seed42_r16_lr0.0002_e3/checkpoint-354")
+    parser.add_argument("--adapter", default=None, help="defaults to the epoch-1 checkpoint")
     parser.add_argument("--n-items", type=int, default=25)
     parser.add_argument("--repeats", type=int, default=3)
     args = parser.parse_args()
-    run(args.adapter, args.n_items, args.repeats)
+    adapter = args.adapter or epoch1_checkpoint()
+    run(adapter, args.n_items, args.repeats)
 
 
 if __name__ == "__main__":

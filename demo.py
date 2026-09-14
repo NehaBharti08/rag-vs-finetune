@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from ragft.settings import REPO_ROOT
 
@@ -37,7 +38,8 @@ BOLD, DIM, GREEN, RED, YELLOW, RESET = (
     "\033[0m",
 )
 
-DEFAULT_ADAPTER = "out/seed42_r16_lr0.0002_e3/checkpoint-354"
+# Resolved at run time: the checkpoint number depends on dataset size.
+DEFAULT_ADAPTER = None
 
 
 def show_failures(n: int = 5) -> None:
@@ -141,9 +143,17 @@ def main() -> None:
         show_failures()
         return
 
-    adapter = args.adapter if (REPO_ROOT / args.adapter).exists() else None
+    if args.adapter:
+        adapter = args.adapter if Path(args.adapter).exists() else None
+    else:
+        try:
+            from ragft.train.checkpoints import epoch1_checkpoint
+
+            adapter = epoch1_checkpoint()
+        except SystemExit:
+            adapter = None
     if adapter is None:
-        print(f"{YELLOW}No adapter at {args.adapter} -- running base arms only.{RESET}")
+        print(f"{YELLOW}No trained adapter found -- running base arms only.{RESET}")
 
     if args.interactive:
         print(f"{DIM}Ctrl-D or 'q' to quit.{RESET}")

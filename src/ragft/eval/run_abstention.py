@@ -35,6 +35,7 @@ from ragft.eval.arms import ArmRunner, arm_specs, build_prompt
 from ragft.eval.metrics.abstention import is_abstention, score
 from ragft.eval.metrics.latency import gpu_contention
 from ragft.settings import REPO_ROOT
+from ragft.train.checkpoints import epoch1_checkpoint
 
 EVAL_DIR = REPO_ROOT / "data" / "eval"
 UNANSWERABLE_PATH = EVAL_DIR / "gold_unanswerable.jsonl"
@@ -150,10 +151,11 @@ def run(adapter: str, answerable_sample: int = 60) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--adapter", default="out/seed42_r16_lr0.0002_e3/checkpoint-354")
+    parser.add_argument("--adapter", default=None, help="defaults to the epoch-1 checkpoint")
     parser.add_argument("--answerable-sample", type=int, default=60)
     args = parser.parse_args()
-    run(args.adapter, args.answerable_sample)
+    adapter = args.adapter or epoch1_checkpoint()
+    run(adapter, args.answerable_sample)
 
 
 if __name__ == "__main__":
