@@ -35,10 +35,10 @@
         "mean_prompt_tokens": 485.6,
         "mean_completion_tokens": 97.5,
         "contention": {
-          "memory_used_mib": 7187,
-          "utilization_pct": 48,
-          "other_process_mib": 7106,
-          "exclusive": false
+          "memory_used_mib": 411,
+          "utilization_pct": 99,
+          "other_process_mib": 338,
+          "exclusive": true
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
@@ -112,10 +112,10 @@
         "mean_prompt_tokens": 1602.9,
         "mean_completion_tokens": 110.7,
         "contention": {
-          "memory_used_mib": 7187,
-          "utilization_pct": 46,
-          "other_process_mib": 7106,
-          "exclusive": false
+          "memory_used_mib": 411,
+          "utilization_pct": 99,
+          "other_process_mib": 338,
+          "exclusive": true
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
@@ -189,10 +189,10 @@
         "mean_prompt_tokens": 52.5,
         "mean_completion_tokens": 91.2,
         "contention": {
-          "memory_used_mib": 7187,
-          "utilization_pct": 45,
-          "other_process_mib": 7106,
-          "exclusive": false
+          "memory_used_mib": 411,
+          "utilization_pct": 99,
+          "other_process_mib": 338,
+          "exclusive": true
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
@@ -266,10 +266,10 @@
         "mean_prompt_tokens": 1138.9,
         "mean_completion_tokens": 118.0,
         "contention": {
-          "memory_used_mib": 7187,
-          "utilization_pct": 45,
-          "other_process_mib": 7106,
-          "exclusive": false
+          "memory_used_mib": 411,
+          "utilization_pct": 99,
+          "other_process_mib": 338,
+          "exclusive": true
         },
         "caveat": "Latency is only comparable across arms when measured in an exclusive GPU window. If `contention.exclusive` is false, treat these as indicative and read gpu_seconds_per_query instead."
       },
@@ -318,9 +318,14 @@
   "adapter": {
     "path": "out/seed42_r16_lr0.0002_e3/checkpoint-354",
     "epoch": 1,
-    "steps": 354,
+    "resolved_at_report_time": true,
     "steps_per_epoch": 353,
-    "eval_loss": 0.8873,
-    "why_this_one": "Best validation loss of the three epoch checkpoints (0.887 / 0.919 / 1.059). Validation loss rose monotonically from epoch 1, so this is the pre-collapse checkpoint and A3's result is not an over-training artefact."
+    "train_rows": 2830,
+    "eval_loss_by_epoch": [
+      0.8873,
+      0.9194,
+      1.0593
+    ],
+    "why_this_one": "Best validation loss of the epoch checkpoints (0.887 / 0.919 / 1.059). Validation loss rose monotonically from epoch 1, so this is the pre-collapse checkpoint and A3's result is not an over-training artefact."
   }
 }

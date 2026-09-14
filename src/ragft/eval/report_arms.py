@@ -12,6 +12,7 @@ determines whether retrieval had anything to add.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from ragft.eval.metrics.citation import aggregate as citation_aggregate
@@ -23,24 +24,46 @@ EVAL_DIR = REPO_ROOT / "data" / "eval"
 RESPONSES = EVAL_DIR / "responses"
 REPORTS = REPO_ROOT / "reports"
 
-# The checkpoint the fine-tuned arms were generated from. checkpoint-354 is the
-# end of EPOCH 1 (353 optimizer steps/epoch) and has the BEST validation loss of
-# the three: 0.887 vs 0.919 at epoch 2 and 1.059 at epoch 3. The model was
-# already overfitting after one epoch, so this is the pre-collapse checkpoint --
-# which matters, because it means A3's failure is not an artefact of evaluating
-# an over-trained adapter.
-ADAPTER_PROVENANCE = {
-    "path": "out/seed42_r16_lr0.0002_e3/checkpoint-354",
-    "epoch": 1,
-    "steps": 354,
-    "steps_per_epoch": 353,
-    "eval_loss": 0.8873,
-    "why_this_one": (
-        "Best validation loss of the three epoch checkpoints (0.887 / 0.919 / 1.059). "
-        "Validation loss rose monotonically from epoch 1, so this is the pre-collapse "
-        "checkpoint and A3's result is not an over-training artefact."
-    ),
-}
+
+def adapter_provenance() -> dict[str, Any]:
+    """Which checkpoint produced the fine-tuned arms, read from the run itself.
+
+    Every field here used to be a literal, including the path. That made the
+    provenance record describe one particular training run rather than the one
+    whose responses are being scored -- and a provenance record that can be
+    wrong is worse than none, because it is believed.
+
+    Epoch 1 is the target: validation loss rises from epoch 1 on every seed and
+    every dataset measured, so the first checkpoint is the best one and A3's
+    result is not an over-training artefact.
+    """
+    from ragft.train.checkpoints import DEFAULT_RUN, epoch1_checkpoint
+
+    path = epoch1_checkpoint()
+    summary_path = DEFAULT_RUN / "summary.json"
+    record: dict[str, Any] = {
+        "path": str(Path(path).relative_to(REPO_ROOT)),
+        "epoch": 1,
+        "resolved_at_report_time": True,
+    }
+    if summary_path.exists():
+        s = json.loads(summary_path.read_text(encoding="utf-8"))
+        losses = [e["eval_loss"] for e in s.get("eval_loss_by_epoch", [])]
+        record |= {
+            "steps_per_epoch": s.get("steps_per_epoch"),
+            "train_rows": s.get("train_rows"),
+            "eval_loss_by_epoch": losses,
+            "why_this_one": (
+                f"Best validation loss of the epoch checkpoints ({' / '.join(f'{x:.3f}' for x in losses)}). "
+                "Validation loss rose monotonically from epoch 1, so this is the "
+                "pre-collapse checkpoint and A3's result is not an over-training artefact."
+                if losses == sorted(losses)
+                else "Epoch-1 checkpoint. NOTE: validation loss was NOT monotonically "
+                "rising on this run, so re-check which epoch is actually best."
+            ),
+        }
+    return record
+
 
 ARM_LABELS = {
     "A1_base_zeroshot": "A1 base, no retrieval",
@@ -96,7 +119,17 @@ def build() -> dict[str, Any]:
     answerable = load_answerability()
     arms: dict[str, Any] = {}
 
+    # Only the four canonical arms. The responses directory also holds tagged
+    # runs -- A3_ft_zeroshot__seed1, __sweep_r64_lr1e-4, A1_base_zeroshot__bf16
+    # and so on -- and a bare *.jsonl glob swept all of them into the 2x2.
+    #
+    # The seed and sweep files carry the same schema, so they were added as
+    # EXTRA ARMS to the headline report without complaint; only the bf16 file,
+    # which records fewer fields, crashed loudly enough to be noticed. Silent
+    # corruption of the main comparison table was the real risk.
     for path in sorted(RESPONSES.glob("*.jsonl")):
+        if path.stem not in ARM_LABELS:
+            continue
         rows = [json.loads(line) for line in path.open(encoding="utf-8") if line.strip()]
         if not rows:
             continue
@@ -125,7 +158,7 @@ def build() -> dict[str, Any]:
     payload = {
         "arms": arms,
         "arms_run": sorted(arms),
-        "adapter": ADAPTER_PROVENANCE,
+        "adapter": adapter_provenance(),
     }
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / "arms_comparison.json").write_text(
