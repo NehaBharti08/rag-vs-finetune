@@ -7,7 +7,8 @@
 # epoch is what makes selecting epoch 1 free rather than another training run.
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ADAPTER="${ADAPTER:-out/seed42_r16_lr0.0002_e3/checkpoint-354}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib_checkpoint.sh"
+ADAPTER="${ADAPTER:-$(epoch1_checkpoint out/seed42_r16_lr0.0002_e3)}"
 echo "adapter: $ADAPTER"
 uv run python -m ragft.eval.runner --arms A3_ft_zeroshot --adapter "$ADAPTER"
 uv run python -m ragft.eval.runner --arms A4_ft_rag --adapter "$ADAPTER"

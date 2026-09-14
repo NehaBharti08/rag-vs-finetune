@@ -13,6 +13,7 @@
 # to "QLoRA failed here". See configs/train/sweep.yaml and reports/sweep.md.
 set -uo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source scripts/lib_checkpoint.sh
 
 NEED_MIB="${NEED_MIB:-12500}"
 EVAL_ITEMS="${EVAL_ITEMS:-100}"
@@ -49,7 +50,7 @@ run_config() {
     echo "=============================================================="
     wait_for_vram || exit 1
 
-    if [ -d "out/${run}/checkpoint-354" ] || [ -d "out/${run}/adapter" ]; then
+    if epoch1_checkpoint "out/${run}" >/dev/null 2>&1; then
         echo "already trained, skipping"
     else
         uv run python -m ragft.train.sft --seed 42 --epochs 1 \
@@ -57,8 +58,7 @@ run_config() {
     fi
 
     local adapter
-    adapter=$(ls -d "out/${run}"/checkpoint-* 2>/dev/null | head -1)
-    [ -z "$adapter" ] && adapter="out/${run}/adapter"
+    adapter="$(epoch1_checkpoint "out/${run}")" || exit 1
 
     uv run python -m ragft.eval.runner --arms A3_ft_zeroshot \
         --adapter "$adapter" --tag "${run}" --limit "$EVAL_ITEMS" || exit 1

@@ -6,7 +6,8 @@
 # Run it when `nvidia-smi` shows the card idle, or its numbers are noise.
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ADAPTER="${ADAPTER:-out/seed42_r16_lr0.0002_e3/checkpoint-354}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib_checkpoint.sh"
+ADAPTER="${ADAPTER:-$(epoch1_checkpoint out/seed42_r16_lr0.0002_e3)}"
 
 uv run python -m ragft.eval.judge_agreement   # CPU
 uv run python -m ragft.analysis.failures      # CPU

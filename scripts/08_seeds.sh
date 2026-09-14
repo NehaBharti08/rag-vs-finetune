@@ -15,25 +15,27 @@
 # identical numbers under greedy decoding.
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source scripts/lib_checkpoint.sh
 
 SEEDS="${SEEDS:-1 2}"
 
 for seed in $SEEDS; do
     RUN="seed${seed}_r16_lr0.0002_e3"
-    ADAPTER="out/${RUN}/checkpoint-354"   # epoch 1, matching seed 42
+    # epoch 1, resolved from what training actually wrote
 
     echo
     echo "=============================================================="
     echo "== seed ${seed}: train"
     echo "=============================================================="
-    if [[ -d "out/${RUN}/checkpoint-354" ]]; then
+    if [[ -n "$(find "out/${RUN}" -maxdepth 1 -name "checkpoint-*" -type d 2>/dev/null)" ]]; then
         echo "already trained, skipping"
     else
         uv run python -m ragft.train.sft --seed "$seed"
     fi
 
     echo
-    echo "== seed ${seed}: evaluate A3, A4"
+    ADAPTER="$(epoch1_checkpoint "out/${RUN}")" || exit 1
+    echo "== seed ${seed}: evaluate A3, A4 (adapter: ${ADAPTER})"
     uv run python -m ragft.eval.runner --arms A3_ft_zeroshot --adapter "$ADAPTER" --tag "seed${seed}"
     uv run python -m ragft.eval.runner --arms A4_ft_rag      --adapter "$ADAPTER" --tag "seed${seed}"
 done
