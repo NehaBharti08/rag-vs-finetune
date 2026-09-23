@@ -28,11 +28,25 @@ from ragft.settings import REPO_ROOT
 RESPONSES = REPO_ROOT / "data" / "eval" / "responses"
 FAILURES = REPO_ROOT / "reports" / "failures.json"
 
+# reports/ is committed but data/eval/responses/ is NOT -- it is bulk model
+# output, correctly gitignored. Guarding on the report alone let this test pass
+# locally and fail in CI with FileNotFoundError.
+#
+# That is the third time this class of bug has appeared here: eval-set files
+# that exist on one machine and nowhere else. The other two were
+# test_citation_validator (fixed with a synthetic fixture) and the frozen gold
+# set itself (fixed by committing it, 228 KB of evidence). The rule that falls
+# out: a test may depend on committed EVIDENCE, never on generated DATA.
+HAVE_RESPONSES = RESPONSES.is_dir() and any(RESPONSES.glob("A*.jsonl"))
+
 # build_space's vocabulary vs the failure taxonomy's, for the no-retrieval arms.
 EQUIVALENT = {"near": "right_act_wrong_section", "none": "no_citation"}
 
 
-@pytest.mark.skipif(not FAILURES.exists(), reason="failure report not built")
+@pytest.mark.skipif(
+    not (FAILURES.exists() and HAVE_RESPONSES),
+    reason="eval responses not present in this checkout (they are gitignored)",
+)
 @pytest.mark.parametrize("arm", ["A1_base_zeroshot", "A3_ft_zeroshot"])
 def test_demo_grading_matches_the_failure_report(arm: str) -> None:
     """Only the no-retrieval arms: the RAG arms' taxonomy keys on retrieval hits."""
