@@ -364,6 +364,17 @@ shared, so a run can lose its slot at any time.
 
 ## Try it
 
+**[🤗 Live demo](https://huggingface.co/spaces/nehabharti0802/rag-vs-finetune-demo)** — the
+citation checker runs this repo's own `CITATION_RE` and section registry **in your browser**.
+Paste anything; it resolves against 1,237 real sections with no server. Try
+`The Indian Penal Code, 1860, §302` to see the repealed-law failure this corpus was chosen to
+expose. The other tabs serve the 1,200 measured answers and the real retrieved context.
+
+_The 7B generation is not live: a free Space cannot serve a 4-bit 7B, and swapping in a smaller
+model would demo something this benchmark never measured. The full Gradio app with live
+retrieval is in [`deploy/space/app.py`](deploy/space/app.py) — it runs locally, or on a Space
+with HF PRO._
+
 **[Results explorer](docs/explorer.html)** — open `docs/explorer.html` in a
 browser. All 1,200 answers from the four arms over the 300 gold questions, every
 citation resolved against the real 1,237-section registry, filterable by failure
