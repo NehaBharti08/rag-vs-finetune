@@ -9,6 +9,9 @@ at digest `6cb89a80fb6ff6c2`. It has not changed since.
 
 ---
 
+**Reproduced end to end** from a clean clone on an independently regenerated
+dataset — see [`reports/reproduction.md`](../reports/reproduction.md).
+
 **Browse the raw evidence:** [`docs/explorer.html`](explorer.html) shows all
 1,200 answers with their citation verdicts, filterable by failure mode.
 

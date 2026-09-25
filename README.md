@@ -14,10 +14,25 @@ over one corpus, one evaluation set, one base checkpoint.
 
 </div>
 
-> **Status: Phase 5 — the full 2×2 is measured.** This README is built up phase
-> by phase.
-> Sections marked _pending_ are filled in as the work behind them lands.
-> No number appears here before it has been measured.
+<p align="center">
+<a href="https://huggingface.co/spaces/nehabharti0802/rag-vs-finetune-demo"><b>🤗 Live demo</b></a> ·
+<a href="https://huggingface.co/spaces/nehabharti0802/statute-citation-explorer"><b>Results explorer</b></a> ·
+<a href="https://huggingface.co/nehabharti0802/rag-vs-finetune-legal-qlora"><b>Adapter</b></a> ·
+<a href="docs/RESULTS.md"><b>Full results</b></a> ·
+<a href="reports/reproduction.md"><b>Reproduction</b></a>
+</p>
+
+> **TL;DR.** On four Indian statutes, QLoRA fine-tuning taught Qwen2.5-7B **which
+> statute** governs a question (47.7% → 92.1% ± 1.7) and almost nothing about
+> **which section** (0.3% → 0.9% ± 1.0). It names a *real* section 99% of the time
+> and the *right* one about 1%. It also became **~3× less willing to refuse**,
+> despite 10% refusal examples in its training data. Retrieval fixes citation
+> accuracy (83.7%); fine-tuning on top of retrieval adds a modest +3.9 ± 1.4.
+>
+> Every headline number is judge-free (a citation resolves against the statute
+> or it doesn't), fine-tuned arms are mean ± std over 3 seeds, and every finding
+> was **reproduced end to end from a clean clone on an independently regenerated
+> dataset.**
 
 ---
 
@@ -279,10 +294,11 @@ Then reproduce everything:
 ./scripts/reproduce_all.sh --from 3   # resume from any phase
 ```
 
-> **Not verified end to end.** Every phase has been run individually and the
-> numbers in `reports/` come from those runs, but the full chain has not been
-> executed in one pass from a clean checkout — regenerating the QA set alone is
-> ~5 hours. Treat it as the documented pipeline, not a tested artifact.
+> **Verified end to end.** The full chain was run from a fresh clone with a
+> regenerated dataset, and every finding reproduced — A1/A2 exactly, A3/A4 within
+> the seed spread. The run also exposed **eight defects** in the automation (four
+> of which could have produced wrong numbers silently), all now fixed with
+> regression tests. See [`reports/reproduction.md`](reports/reproduction.md).
 
 Every phase is idempotent and separately runnable, because they have very
 different costs and failure modes:
@@ -308,10 +324,11 @@ uv run python -m ragft.eval.label judge    # grade responses, for Cohen's kappa
 uv run python -m ragft.eval.label write    # author the unanswerable stratum
 ```
 
-The last one is why abstention is currently unmeasured — see
-[Limitations](#what-this-does-not-establish).
+The last one produced the 60 hand-written unanswerable questions behind the
+abstention result — they cannot be generated, because an LLM asked for
+unanswerable questions writes obviously off-topic ones.
 
-## Dataset (Phase 1)
+## Dataset
 
 **3,171 QA pairs** (2,830 train / 341 val) grounded in **1,090 sections** of four
 Indian statutes. Full detail in
@@ -423,7 +440,9 @@ Stated here rather than left for a reader to discover:
   The variance run also **killed** a headline: "0.0%, below the base model" was
   a single-seed artifact. See [`reports/seeds.md`](reports/seeds.md).
 - **Abstention rests on 60 items and one seed.** Enough to show a 3× effect;
-  not enough to put a tight interval on it.
+  not enough to put a tight interval on it. On the regenerated dataset A3
+  reproduced (15.0% → 16.7%) but **A4 did not** (16.7% → 30.0%) — the one number
+  in the reproduction that moved beyond noise.
 - **One base model, one corpus.** A rank {16,64} × lr {1e-4,2e-4} sweep found
   act accuracy identical at **93.0% in all four** and section accuracy 0–4%
   throughout, so the finding is not an artifact of one configuration
